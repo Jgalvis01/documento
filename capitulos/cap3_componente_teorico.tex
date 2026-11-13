@@ -1,0 +1,167 @@
+\chapter{Componente teórico}
+
+Este capítulo expone los fundamentos clínicos y computacionales que sustentan el sistema de apoyo al diagnóstico sobre imágenes dermatoscópicas~\cite{amaral2025esmo,zhang2024dive}. En su primera sección desarrolla las categorías de lesiones cutáneas de HAM10000~\cite{tschandl2018ham10000}, los principios de las CNN, la transferencia de aprendizaje, el desbalance y las métricas de validación~\cite{maierhein2024metrics}. En la segunda sección analiza los trabajos relacionados a partir de sus protocolos de partición, sus métricas y su alcance clínico~\cite{kapoor2023leakage,barata2023reinforcement}.
+
+\section{Marco teórico}
+
+El marco teórico articula los conceptos médicos y algorítmicos requeridos para clasificar imá\-ge\-nes dermatoscópicas en siete categorías diagnósticas~\cite{tschandl2018ham10000}. Se describen primero las lesiones pigmentadas y la técnica de adquisición dermatoscópica utilizada en la práctica clínica~\cite{amaral2025esmo}. Posteriormente se formalizan las operaciones de las CNN, el ajuste fino desde pesos preentrenados, el tratamiento del desbalance y las ecuaciones de evaluación y calibración~\cite{zhang2024dive,maierhein2024metrics,guo2017calibration}.
+
+\subsection{Lesiones cutáneas y melanoma}
+
+El conjunto de datos HAM10000 agrupa las lesiones pigmentadas más frecuentes en la práctica dermatoscópica dentro de siete clases diagnósticas~\cite{tschandl2018ham10000}. La Tabla~\ref{tab:clases} presenta el código identificador, la denominación en español, el comportamiento biológico y una descripción resumida de cada una de estas siete categorías~\cite{tschandl2018ham10000}. En ella se observa la coexistencia de lesiones benignas, entidades premalignas o malignas \textit{in situ} y neoplasias malignas invasivas como el melanoma (\texttt{mel}) y el carcinoma basocelular (\texttt{bcc})~\cite{tschandl2018ham10000}.
+
+\begin{table}[H]
+  \centering
+  \caption{Clases diagnósticas del conjunto de datos HAM10000~\cite{tschandl2018ham10000}.}
+  \label{tab:clases}
+  \begin{tabularx}{\textwidth}{l >{\hsize=0.9\hsize\linewidth=\hsize}Y >{\hsize=0.65\hsize\linewidth=\hsize}Y >{\hsize=1.45\hsize\linewidth=\hsize}Y}
+    \toprule
+    Código & Nombre & Naturaleza & Descripción \\
+    \midrule
+    \texttt{akiec} & Queratosis actínica y enfermedad de Bowen & Premaligna / maligna \textit{in situ} & Variantes no invasivas de carcinoma escamocelular asociadas a daño actínico crónico~\cite{tschandl2018ham10000}. \\
+    \texttt{bcc} & Carcinoma basocelular & Maligna & Neoplasia epitelial maligna de crecimiento lento que rara vez produce metástasis~\cite{tschandl2018ham10000}. \\
+    \texttt{bkl} & Lesiones benignas tipo queratosis & Benigna & Agrupa queratosis seborreica, lentigo solar y queratosis tipo liquen plano~\cite{tschandl2018ham10000}. \\
+    \texttt{df} & Dermatofibroma & Benigna & Proliferación dérmica benigna reactiva o fibrocítica de aspecto nodular~\cite{tschandl2018ham10000}. \\
+    \texttt{mel} & Melanoma & Maligna & Neoplasia maligna originada en los melanocitos con capacidad metastásica~\cite{tschandl2018ham10000,amaral2025esmo}. \\
+    \texttt{nv} & Nevo melanocítico & Benigna & Proliferación benigna de melanocitos que presenta múltiples variantes morfológicas~\cite{tschandl2018ham10000}. \\
+    \texttt{vasc} & Lesiones vasculares & Benigna & Incluye angiomas, angioqueratomas y granulomas piógenos de coloración rojiza o violácea~\cite{tschandl2018ham10000}. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+El melanoma (\texttt{mel}) es una neoplasia maligna derivada de los melanocitos que ocasionó 58.398 muertes estimadas en el mundo en 2024~\cite{iarc2026melanoma,tschandl2018ham10000}. Su identificación en estadios tempranos I y II, que en Colombia representaron el 67,4\,\% de los diagnósticos del periodo 2024~\cite{cac2025melanoma}, condiciona el manejo quirúrgico y el pronóstico~\cite{amaral2025esmo}. En dermatoscopia, el melanoma comparte rasgos visuales de pigmentación y asimetría con los nevos melanocíticos (\texttt{nv}) y con las lesiones benignas tipo queratosis (\texttt{bkl})~\cite{tschandl2018ham10000}.
+
+Dentro de las categorías restantes, la clase \texttt{bkl} reúne tres entidades benignas distintas: la queratosis seborreica, el lentigo solar y la queratosis tipo liquen plano~\cite{tschandl2018ham10000}. Estas lesiones se agrupan en una sola etiqueta porque muestran patrones dermatoscópicos similares e inflamación regresiva~\cite{tschandl2018ham10000}. Por su parte, la clase \texttt{akiec} agrupa la queratosis actínica y el carcinoma intraepitelial o enfermedad de Bowen, que constituyen precursores o formas superficiales no invasivas de carcinoma escamocelular~\cite{tschandl2018ham10000}. Las tres categorías restantes corresponden al carcinoma basocelular (\texttt{bcc}), el dermatofibroma (\texttt{df}) y las lesiones vasculares (\texttt{vasc})~\cite{tschandl2018ham10000}.
+
+\subsection{Dermatoscopia}
+
+La dermatoscopia es una técnica de microscopía de epiluminiscencia no invasiva que emplea iluminación magnificada con luz polarizada o líquido de inmersión~\cite{amaral2025esmo,tschandl2018ham10000}. Este procedimiento reduce la reflexión superficial de la epidermis y permite visualizar estructuras de pigmento y patrones vasculares en la epidermis profunda y la dermis papilar~\cite{tschandl2018ham10000}. Seg\'{u}n la gu\'{\i}a cl\'{\i}nica de la Sociedad Europea de Oncolog\'{\i}a M\'{e}dica (ESMO), la dermatoscopia realizada por un m\'{e}dico con experiencia mejora la precisi\'{o}n diagn\'{o}stica~\cite{amaral2025esmo}.
+
+Pese a su utilidad clínica, el examen dermatoscópico no establece por sí solo el diagnóstico definitivo de malignidad~\cite{amaral2025esmo}. Ante una lesión sospechosa, la confirmación de melanoma requiere la escisión de la lesión y su posterior estudio histopatológico~\cite{amaral2025esmo}. Adicionalmente, las imágenes dermatoscópicas suelen presentar artefactos de adquisición como burbujas, variaciones de iluminación y oclusión por vello cutáneo~\cite{lee1997dullrazor,wang2024hair}. Estudios sobre HAM10000 indican que la presencia abundante de vello reduce el rendimiento de los clasificadores automáticos, con mayor impacto en las lesiones vasculares (\texttt{vasc})~\cite{wang2024hair}.
+
+\subsection{Redes neuronales convolucionales}
+
+Las CNN procesan imágenes en forma de tensores tridimensionales de altura, anchura y canales de color mediante capas sucesivas con pesos compartidos~\cite{goodfellow2016deep,zhang2024dive}. En cada capa convolucional, un conjunto de filtros bidimensionales recorre la entrada para extraer mapas de características locales como bordes, texturas y patrones de color~\cite{goodfellow2016deep}. Dado un mapa de entrada bidimensional $I$ y un núcleo o filtro $K$ de tamaño $M \times N$, la operación de convolución discreta en la posición $(i, j)$ se expresa en la Ecuación~\ref{eq:convolucion}~\cite{goodfellow2016deep}:
+
+\begin{equation}
+  S(i, j) = (I * K)(i, j) = \sum_{m=1}^{M} \sum_{n=1}^{N} I(i + m, j + n)\,K(m, n)
+  \label{eq:convolucion}
+\end{equation}
+
+Sobre los mapas resultantes se aplica una función de activación no lineal, como la unidad lineal rectificada (ReLU), definida por $f(x) = \max(0, x)$~\cite{goodfellow2016deep,zhang2024dive}. A continuación, las capas de agrupamiento (\textit{pooling}) reducen la resolución espacial de los mapas de características para disminuir el número de parámetros y otorgar invarianza a traslaciones pequeñas~\cite{goodfellow2016deep}. Al final de la red, el agrupamiento promedio global resume cada canal espacial en un escalar antes de las capas densas y la regularización con \textit{dropout}~\cite{zhang2024dive}. Para un problema de $C = 7$ clases, la capa de salida aplica la función \textit{softmax} sobre el vector de \textit{logits} $z = (z_1, \dots, z_C)$ según la Ecuación~\ref{eq:softmax}~\cite{goodfellow2016deep}:
+
+\begin{equation}
+  p_c = \frac{\exp(z_c)}{\sum_{k=1}^{C} \exp(z_k)}, \quad c \in \{1, \dots, C\}
+  \label{eq:softmax}
+\end{equation}
+
+En este trabajo se evaluaron cinco familias de arquitecturas convolucionales preentrenadas junto con variantes recurrentes. ResNet50 introduce conexiones residuales de atajo que suman la entrada de un bloque a su salida para facilitar la propagación del gradiente en redes de 50 capas~\cite{he2016resnet}. DenseNet121 conecta cada capa con las siguientes dentro de un bloque denso mediante concatenación de características, favoreciendo la reutilización de representaciones con 7,30 millones de parámetros~\cite{huang2017densenet}. MobileNetV3Large combina convoluciones separables en profundidad, bloques residuales invertidos con atención de compresión y excitación y búsqueda de arquitectura neuronal, con un total de 3,24 millones de parámetros~\cite{howard2019mobilenetv3}.
+
+Las dos arquitecturas preentrenadas restantes incorporan rediseños posteriores de las convoluciones modernas. EfficientNetV2-S combina bloques convolucionales fusionados en las primeras etapas con un escalado compuesto de profundidad, anchura y resolución, sumando 20,66 millones de parámetros~\cite{tan2021efficientnetv2}. ConvNeXt-Tiny moderniza el diseño de una red residual estándar mediante convoluciones en profundidad de $7 \times 7$ y bloques invertidos con 28,02 millones de parámetros~\cite{liu2022convnext}. Por último, añadir una capa de memoria a corto y largo plazo bidireccional (BiLSTM) sobre los mapas de características modela dependencias secuenciales en ambas direcciones~\cite{zhang2024dive}.
+
+\subsection{Aprendizaje por transferencia y ajuste fino}
+
+El aprendizaje por transferencia reutiliza los parámetros de una red preentrenada sobre un conjunto de gran escala, como ImageNet~\cite{deng2009imagenet}, para inicializar un clasificador en un dominio con menos muestras~\cite{zhang2024dive}. Las primeras capas convolucionales aprenden detectores generales de bordes, gradientes cromáticos y texturas que resultan transferibles a imágenes dermatoscópicas~\cite{zhang2024dive}. Para adaptar la red a HAM10000, se reemplaza el clasificador original de 1.000 categorías de ImageNet~\cite{deng2009imagenet} por una cabeza con siete salidas según la Tabla~\ref{tab:clases}~\cite{zhang2024dive}.
+
+El procedimiento de ajuste fino (\textit{fine-tuning}) se ejecuta habitualmente en dos etapas sucesivas para preservar las representaciones preentrenadas~\cite{zhang2024dive}. En la primera fase se congelan los pesos de la base convolucional y se entrena únicamente la cabeza de clasificación inicializada al azar~\cite{zhang2024dive}. En la segunda fase se descongelan las capas convolucionales con una tasa de aprendizaje reducida para ajustar los filtros a las estructuras específicas de las lesiones cutáneas~\cite{zhang2024dive}. Como tendencia reciente, se han creado modelos fundacionales dermatológicos como PanDerm, preentrenado con más de dos millones de imágenes de once instituciones y cuatro modalidades~\cite{yan2025panderm}.
+
+\subsection{Desbalance de clases}
+
+Un conjunto de datos presenta desbalance de clases cuando la frecuencia de las categorías difiere en uno o más órdenes de magnitud~\cite{hu2024multiscale}. En HAM10000, los nevos melanocíticos (\texttt{nv}) concentran 6.705 de las 10.015 imágenes (67,0\,\%), mientras que el dermatofibroma (\texttt{df}) cuenta con 115 imágenes y las lesiones vasculares (\texttt{vasc}) con 142~\cite{tschandl2018ham10000}. Si una red se entrena minimizando la entropía cruzada estándar sin corrección, el gradiente queda dominado por la clase mayoritaria y el clasificador tiende a subestimar las clases minoritarias~\cite{hu2024multiscale}.
+
+En la literatura sobre clasificación dermatoscópica se han comparado tres familias principales de estrategias para mitigar este problema~\cite{hu2024multiscale}. La primera consiste en el remuestreo de datos, ya sea mediante sobremuestreo de las categorías minoritarias o submuestreo de la clase mayoritaria~\cite{hu2024multiscale}. La segunda asigna pesos por clase $w_c$ en la función de pérdida de entropía cruzada para penalizar en mayor proporción los errores sobre las clases menos frecuentes~\cite{hu2024multiscale}. La tercera combina estas técnicas con regularización de las probabilidades objetivo mediante suavizado de etiquetas (\textit{label smoothing}) para reducir el exceso de confianza del modelo~\cite{hu2024multiscale}.
+
+\subsection{Métricas de evaluación}
+
+En un problema de clasificación con desbalance severo, la proporción global de aciertos (accuracy) resulta insuficiente porque puede alcanzar valores altos acertando únicamente la clase mayoritaria~\cite{maierhein2024metrics}. Por ello, las guías metodológicas recomiendan seleccionar métricas acordes con la distribución de clases y reportar el rendimiento desagregado por categoría~\cite{maierhein2024metrics}. Sean $TP_c$, $FP_c$, $TN_c$ y $FN_c$ los verdaderos positivos, falsos positivos, verdaderos negativos y falsos negativos de la clase $c \in \{1, \dots, C\}$ sobre un total de $N$ muestras. La accuracy global se define en la Ecuación~\ref{eq:accuracy}~\cite{maierhein2024metrics}:
+
+\begin{equation}
+  \text{Accuracy} = \frac{1}{N} \sum_{c=1}^{C} TP_c
+  \label{eq:accuracy}
+\end{equation}
+
+Para una clase específica $c$ como el melanoma (\texttt{mel}), la sensibilidad y la especificidad miden las tasas de verdaderos positivos y verdaderos negativos~\cite{maierhein2024metrics}. Ambas métricas se definen en las Ecuaciones~\ref{eq:sensibilidad} y~\ref{eq:especificidad}~\cite{maierhein2024metrics}:
+
+\begin{equation}
+  \text{Sensibilidad}_c = \frac{TP_c}{TP_c + FN_c}
+  \label{eq:sensibilidad}
+\end{equation}
+
+\begin{equation}
+  \text{Especificidad}_c = \frac{TN_c}{TN_c + FP_c}
+  \label{eq:especificidad}
+\end{equation}
+
+De forma complementaria, la precisión (\textit{precision}) cuantifica la proporción de predicciones positivas de la clase $c$ que resultan verdaderas~\cite{maierhein2024metrics}. Su media armónica con la sensibilidad define el puntaje $\text{F1}_c$, según las Ecuaciones~\ref{eq:precision} y~\ref{eq:f1}~\cite{maierhein2024metrics}:
+
+\begin{equation}
+  \text{Precisión}_c = \frac{TP_c}{TP_c + FP_c}
+  \label{eq:precision}
+\end{equation}
+
+\begin{equation}
+  \text{F1}_c = \frac{2 \cdot \text{Precisión}_c \cdot \text{Sensibilidad}_c}{\text{Precisión}_c + \text{Sensibilidad}_c} = \frac{2\,TP_c}{2\,TP_c + FP_c + FN_c}
+  \label{eq:f1}
+\end{equation}
+
+Para resumir el desempeño multiclase otorgando el mismo peso a las siete categorías con independencia de su frecuencia, se utilizan el Macro-F1 y la balanced accuracy~\cite{maierhein2024metrics}. Esta última corresponde al promedio aritmético de las sensibilidades por clase y fue adoptada como métrica oficial del reto ISIC 2018 Task 3~\cite{codella2019isic2018}. Sus expresiones se presentan en las Ecuaciones~\ref{eq:macrof1} y~\ref{eq:balacc}~\cite{maierhein2024metrics,codella2019isic2018}:
+
+\begin{equation}
+  \text{Macro-F1} = \frac{1}{C} \sum_{c=1}^{C} \text{F1}_c
+  \label{eq:macrof1}
+\end{equation}
+
+\begin{equation}
+  \text{Balanced accuracy} = \frac{1}{C} \sum_{c=1}^{C} \text{Sensibilidad}_c
+  \label{eq:balacc}
+\end{equation}
+
+Además de las métricas dependientes de un punto de corte, la capacidad de discriminación para melanoma se evalúa mediante la curva característica operativa del receptor (ROC)~\cite{maierhein2024metrics}. Esta curva grafica la sensibilidad frente a $1 - \text{Especificidad}_{\texttt{mel}}$ al variar el umbral de decisión $t \in [0, 1]$, y el área bajo la curva (AUC) define el AUC-ROC en la Ecuación~\ref{eq:auc}~\cite{maierhein2024metrics}:
+
+\begin{equation}
+  \text{AUC}_{\texttt{mel}} = \int_{0}^{1} \text{Sensibilidad}_{\texttt{mel}}\!\left(\text{FPR}^{-1}(u)\right) du
+  \label{eq:auc}
+\end{equation}
+
+En el análisis de imágenes médicas es necesario distinguir entre la discriminación del modelo y la calibración de sus probabilidades~\cite{maierhein2024metrics,sambyal2023calibration}. Una red neuronal puede alcanzar una accuracy o un AUC altos y, al mismo tiempo, producir probabilidades sobreconfiadas que no reflejan la frecuencia empírica de acierto~\cite{guo2017calibration,sambyal2023calibration}. El método de \textit{temperature scaling} corrige esta descalibración dividiendo los \textit{logits} $z$ por un escalar $T > 0$ antes de la función \textit{softmax} (Ecuación~\ref{eq:tempscaling})~\cite{guo2017calibration}. El parámetro $T$ se ajusta sobre un conjunto de validación reservado y su comportamiento depende de la confiabilidad de las etiquetas clínicas~\cite{penso2024calibration}.
+
+\begin{equation}
+  p_{\text{cal}, c} = \frac{\exp(z_c / T)}{\sum_{k=1}^{C} \exp(z_k / T)}
+  \label{eq:tempscaling}
+\end{equation}
+
+\section{Trabajos relacionados}
+
+En la clasificación multiclase sobre HAM10000~\cite{tschandl2018ham10000}, diversos estudios han explorado modificaciones arquitectónicas y esquemas de balanceo. Hu et al.~\cite{hu2024multiscale} compararon ponderación de clases, \textit{label smoothing} y remuestreo en HAM10000 sin vello, reportando 94,0\,\% de accuracy y 99,3\,\% de AUC (y 89,8\,\% en ISIC 2019). De igual modo, se han evaluado ensambles de CNN y transformadores~\cite{sariates2025}, marcos como EnsembleSkinNet~\cite{cherukuri2025}, ajustes de DenseNet121~\cite{bello2024densenet} y redes de bajo costo~\cite{almamun2025}. Sin embargo, en varios de estos reportes la partición independiente por lesión no está verificada y el uso de accuracy global no es equiparable al Macro-F1 en presencia de desbalance~\cite{maierhein2024metrics,abhishek2025quality}.
+
+Una segunda línea de investigación aborda la asimetría en el costo clínico de los errores diagnósticos al priorizar la detección de melanoma~\cite{barata2023reinforcement}. Barata et al.~\cite{barata2023reinforcement} entrenaron un sistema con HAM10000 y lo evaluaron sobre 1.511 imágenes del conjunto de prueba de ISIC 2018 incorporando recompensas diferenciadas mediante aprendizaje por refuerzo. Al penalizar los falsos negativos en lesiones malignas, su modelo incrementó la sensibilidad para melanoma de 61,4\,\% a 79,5\,\%~\cite{barata2023reinforcement}. Este estudio constituye el antecedente más cercano a los umbrales de este trabajo, aunque usa otro método de decisión y evalúa 1.511 imágenes frente a 1.512~\cite{barata2023reinforcement,codella2019isic2018}.
+
+En el ámbito de la validación clínica con pacientes, los estudios prospectivos han examinado el comportamiento de clasificadores dermatoscópicos fuera de los bancos retrospectivos. En el estudio prospectivo PROVE-AI, Marchetti et al.~\cite{marchetti2023proveai} evaluaron 603 lesiones seleccionadas para biopsia en 435 participantes (96\,\% de piel blanca), incluidas 95 lesiones de melanoma. Con un umbral fijado para 95\,\% de sensibilidad, el modelo obtuvo 96,8\,\% de sensibilidad y 37,4\,\% de especificidad, requiriendo ensayos aleatorizados antes de su adopción~\cite{marchetti2023proveai}. En otro estudio sobre 1.910 lesiones de 1.716 pacientes en ocho hospitales alemanes, Heinlein et al.~\cite{heinlein2024multicenter} reportaron 92,1\,\% de sensibilidad y 67,3\,\% de especificidad (73,4\,\% y 82,8\,\% en dermatólogos).
+
+En cuanto al escalamiento de representaciones y la diversidad poblacional, la literatura reciente ha evidenciado tanto el avance de los modelos fundacionales como las disparidades de desempeño. Yan et al.~\cite{yan2025panderm} desarrollaron PanDerm mediante preentrenamiento multimodal sobre más de dos millones de imágenes procedentes de once instituciones y cuatro modalidades, evaluándolo en 28 tareas clínicas. Por su parte, Daneshjou et al.~\cite{daneshjou2022disparities} demostraron con fotografías clínicas que los modelos rinden peor en pieles oscuras y que el ajuste con datos diversos reduce esa brecha. Ambos trabajos ponen de relieve las limitaciones de entrenar clasificadores únicamente sobre colecciones retrospectivas de poblaciones de piel clara~\cite{daneshjou2022disparities,yan2025panderm}.
+
+Desde el punto de vista de la calidad de los datos y el despliegue en software, las auditorías metodológicas han identificado riesgos críticos de contaminación entre particiones~\cite{kapoor2023leakage,abhishek2025quality}. Kapoor y Narayanan~\cite{kapoor2023leakage} sistematizaron una taxonomía de ocho tipos de fuga de información y documentaron su presencia en 17 campos científicos como causa de sobreestimación del rendimiento. En dermatología, Abhishek et al.~\cite{abhishek2025quality} comprobaron que DermaMNIST reparte imágenes de una misma lesión entre particiones y hallaron 18 pares duplicados en HAM10000 con distinto \texttt{lesion\_id}. En paralelo, los aplicativos web dermatológicos~\cite{farias2026} que ejecutan modelos en el navegador deben verificar paridad numérica, latencia y consumo de memoria~\cite{ning2024onnxweb,wang2025browser}. La Tabla~\ref{tab:estado-arte} sintetiza los trabajos de referencia indicando su tarea, conjunto de datos, unidad de partición, validación externa, métricas y condiciones de comparabilidad.
+
+\begin{sidewaystable}[p]
+  \centering
+  \caption{Comparación de trabajos relacionados en clasificación dermatológica.}
+  \label{tab:estado-arte}
+  \footnotesize
+  \begin{tabularx}{\linewidth}{>{\hsize=0.85\hsize\linewidth=\hsize}Y >{\hsize=0.75\hsize\linewidth=\hsize}Y >{\hsize=0.95\hsize\linewidth=\hsize}Y >{\hsize=0.85\hsize\linewidth=\hsize}Y >{\hsize=0.85\hsize\linewidth=\hsize}Y >{\hsize=1.15\hsize\linewidth=\hsize}Y >{\hsize=1.60\hsize\linewidth=\hsize}Y}
+    \toprule
+    Trabajo & Tarea (n.º de clases) & Datos & Unidad de partición & Validación externa & Métrica reportada & Comparabilidad \\
+    \midrule
+    Hu et al.~\cite{hu2024multiscale} & Multiclase (7 clases) & HAM10000 sin vello e ISIC 2019 & No verificada & No verificada (evaluado en dos conjuntos) & Accuracy 94,0\,\% y AUC 99,3\,\% (HAM10000); accuracy 89,8\,\% (ISIC 2019) & Accuracy no equivale a Macro-F1; partición por lesión no verificada. \\
+    Sarıateş y Özbay~\cite{sariates2025} & Clasificación dermatoscópica & Conjuntos públicos dermatoscópicos & No verificada & No verificada & Métricas de clasificación de ensamble & Protocolo de partición por lesión no verificado. \\
+    Cherukuri y Vara Prasad~\cite{cherukuri2025} & Clasificación de cáncer de piel & Conjuntos dermatoscópicos públicos & No verificada & No verificada & Métricas de clasificación con aprendizaje por transferencia & Unidad de partición y desbalance no equiparables directamente. \\
+    Barata et al.~\cite{barata2023reinforcement} & Multiclase (7 clases) & Entrenamiento en HAM10000; prueba en ISIC 2018 & No verificada en entrenamiento & Sí (ISIC 2018, 1.511 imágenes) & Sensibilidad MEL de 61,4\,\% a 79,5\,\% & 1.511 imágenes de prueba frente a 1.512; otro método de decisión (aprendizaje por refuerzo). \\
+    Marchetti et al.~\cite{marchetti2023proveai} & Binaria (2 clases) & 603 lesiones de 435 participantes (95 melanomas) & Por paciente / prospectiva & Sí (estudio prospectivo PROVE-AI) & Sensibilidad 96,8\,\% y especificidad 37,4\,\% & Lesiones seleccionadas para biopsia; tarea binaria no comparable con 7 clases. \\
+    Heinlein et al.~\cite{heinlein2024multicenter} & Binaria (2 clases) & 1.910 lesiones de 1.716 pacientes & Prospectiva multicéntrica & Sí (8 hospitales, 4 configuraciones de cámara) & IA: sensibilidad 92,1\,\% y especificidad 67,3\,\% & Lesiones sospechosas de melanoma en atención clínica; tarea binaria. \\
+    Yan et al.~\cite{yan2025panderm} & Múltiple (28 tareas) & $>2$ millones de imágenes (11 instituciones, 4 modalidades) & Por tarea y cohorte & Sí (evaluación multicéntrica) & Desempeño en 28 tareas clínicas & Escala de datos y capacidad del modelo fundacional no comparables con MobileNetV3. \\
+    Farías Rivera et al.~\cite{farias2026} & Clasificación en aplicativo web & Imágenes de lesiones cutáneas & No verificada & No verificada & Desempeño funcional y de clasificación & Antecedente de integración web; distinto protocolo experimental. \\
+    \bottomrule
+  \end{tabularx}
+\end{sidewaystable}
+\clearpage
+
+Frente a los antecedentes resumidos en la Tabla~\ref{tab:estado-arte}, este trabajo integra cinco elementos metodológicos y de ingeniería en un mismo flujo reproducible. En primer lugar, aplica una partición estricta agrupada por lesión sobre las 10.015 imágenes de HAM10000~\cite{tschandl2018ham10000} y cuantifica experimentalmente la diferencia frente a una partición por imagen~\cite{kapoor2023leakage,abhishek2025quality}. En segundo lugar, compara ocho configuraciones de redes neuronales en resoluciones de 224 y 384\,px con tres semillas aleatorias (42, 43 y 44) por configuración. En tercer lugar, aplica una regla de selección fijada sobre el conjunto de validación antes de abrir el conjunto de prueba, la cual incorpora el desempate por AUC de melanoma~\cite{maierhein2024metrics}. Finalmente, evalúa el modelo calibrado ($T = 3{,}2933$) con sus umbrales fijos en las 1.512 imágenes de ISIC 2018~\cite{codella2019isic2018} y lo despliega en un aplicativo web que ejecuta el preprocesamiento y la inferencia localmente en el navegador~\cite{ning2024onnxweb}.

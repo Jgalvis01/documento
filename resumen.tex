@@ -1,0 +1,10 @@
+La diferenciación visual de lesiones cutáneas pigmentadas y la identificación del melanoma representan un reto clínico dentro del análisis dermatoscópico, debido a la similitud morfológica entre neoplasias malignas y lesiones benignas. Frente a esta necesidad, los modelos de aprendizaje profundo basados en redes neuronales convolucionales se han consolidado como una alternativa computacional para asistir la valoración dermatoscópica y orientar la priorización de lesiones sujetas a confirmación histopatológica.
+
+Este trabajo presenta un sistema computacional de apoyo al diagnóstico para la clasificación de imágenes dermatoscópicas de lesiones cutáneas en las siete categorías diagnósticas del conjunto HAM10000. El desarrollo incorpora una cadena de preprocesamiento de cuatro etapas con atenuación de ruido, remoción morfológica de vello y ecualización adaptativa de contraste, junto con la comparación de arquitecturas convolucionales bajo una partición agrupada por lesión, la validación externa en el conjunto ISIC 2018 y un esquema de calibración de probabilidades con modos de decisión configurables.
+
+La solución fue implementada como una plataforma web que ejecuta el núcleo de preprocesamiento e inferencia directamente en el navegador mediante Web Workers, OpenCV.js y ONNX Runtime Web, junto con una interfaz gráfica desarrollada con React y TypeScript. Este enfoque permite analizar fotografías individuales o lotes de imágenes, inspeccionar la distribución de probabilidades por categoría diagnóstica y exportar reportes en formatos estandarizados, sin enviar las imágenes a servidores externos ni depender de infraestructura de cómputo dedicada.
+
+El aplicativo busca facilitar el acceso a herramientas computacionales de clasificación dermatoscópica y servir como un entorno de análisis y experimentación para estudiantes, investigadores y profesionales del área, operando exclusivamente como un recurso de apoyo que no realiza diagnósticos definitivos ni sustituye la evaluación del dermatólogo.
+
+\vspace{1em}
+\noindent\textbf{Palabras clave:} melanoma, aprendizaje profundo, redes neuronales convolucionales, dermatoscopia, aplicativo web.

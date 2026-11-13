@@ -1,0 +1,79 @@
+% Proyecto de Grado — Pontificia Universidad Javeriana Cali.
+% Compilar: latexmk -pdf main.tex
+% Estructura de escritura: completar los marcadores rojos siguiendo los comentarios GUÍA.
+\documentclass[11pt,oneside]{thesis}
+\usepackage{enumerate}
+\usepackage{longtable}
+\usepackage{url}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{makeidx}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{pgfgantt}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+
+% GUÍA: Datos de portada y cartas tomados de las instrucciones del autor.
+\titulo{Sistema de apoyo al diagnóstico de melanoma mediante aprendizaje profundo e integración en aplicativo web}
+\autorA{\pendiente{código}}{Julián Andrés Galvis Tocora}
+\fecha{Noviembre de 2026}
+\directorproyecto{PhD.}{Hernán Darío Vargas Cardona}
+\directorcarrera{Dr.}{Gerardo Mauricio Sarria} % VERIFICAR nombre vigente
+
+\input{format}
+% Marcador visible de escritura; no eliminar hasta completar su contenido.
+\DeclareRobustCommand{\pendiente}[1]{\textcolor{red}{[Pendiente: #1]}}
+\pdfstringdefDisableCommands{\def\pendiente#1{Pendiente: #1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\makeindex
+
+\begin{document}
+% Evitar que la portada sin numeración comparta el destino PDF de la página 1.
+\hypersetup{pageanchor=false}
+\maketitle
+\frontmatter
+\hypersetup{pageanchor=true}
+% GUÍA: Conservar el texto y formato institucional de ambas cartas, definidos en la clase.
+\makeapprovalletter
+\makecommitmentletter
+
+\clearpage
+\begin{center}{\bfseries Abstract}\end{center}
+\input{abstract}
+\clearpage
+\begin{center}{\bfseries Resumen}\end{center}
+\input{resumen}
+\tableofcontents
+\listoftables
+\listoffigures
+
+\mainmatter
+\input{capitulos/cap1_introduccion}
+\input{capitulos/cap2_descripcion_problema}
+\input{capitulos/cap3_componente_teorico}
+\input{capitulos/cap4_datos_preprocesamiento}
+\input{capitulos/cap5_modelos_entrenamiento}
+\input{capitulos/cap6_construccion_aplicacion}
+\input{capitulos/cap7_resultados_validacion}
+\input{capitulos/cap8_conclusiones}
+\input{capitulos/cap9_trabajo_futuro}
+
+\clearpage
+\phantomsection
+\chapter*{Anexo: Declaración sobre el uso de Inteligencia Artificial}
+\addcontentsline{toc}{chapter}{Anexo: Declaración sobre el uso de Inteligencia Artificial}
+\markboth{}{}
+\input{anexo_ia}
+
+% GUÍA: Referencias recuperadas de la base bibliográfica previa del proyecto y corregidas.
+% El PDF disponible es una plantilla sin bibliografía; cotejar con el anteproyecto real.
+% Se muestran todas para facilitar la revisión; sustituir nocite por citas en la redacción final.
+\bibliographystyle{ieeetr}
+\bibliography{Referencias_melanoma_2022_en_adelante,fundamentales,referencias}
+\end{document}

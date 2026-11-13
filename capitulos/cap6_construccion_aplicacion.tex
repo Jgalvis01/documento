@@ -1,0 +1,181 @@
+\chapter{Construcción de la aplicación}
+
+Este capítulo documenta la arquitectura, los requisitos, el diseño de interfaz y las funcionalidades del aplicativo web desarrollado para el cuarto objetivo específico. Describe la exportación del modelo MobileNetV3Large a formato ONNX y su ejecución en el navegador mediante OpenCV.js y ONNX Runtime Web~\cite{ning2024onnxweb}. Por último, presenta el manual de usuario y los resultados de verificación técnica en paridad numérica, rendimiento, memoria~\cite{wang2025browser} y accesibilidad automática~\cite{w3c2023wcag22}.
+
+\section{Arquitectura del sistema}
+
+La arquitectura del aplicativo se diseñó bajo un esquema de ejecución en el cliente (\textit{client-side}) en el que todas las etapas de procesamiento ocurren dentro del navegador del usuario~\cite{ning2024onnxweb}. Esta decisión arquitectónica garantiza que las imágenes dermatoscópicas no salgan del equipo local, elimina la necesidad de servidores dedicados de inferencia y suprime los costos de cómputo en la nube~\cite{ning2024onnxweb}. En las siguientes subsecciones se detallan la visión general, los módulos del cliente, la exportación a ONNX, el flujo de datos y la configuración de despliegue estático.
+
+\subsection{Visión general}
+
+El aplicativo web se construyó con React, TypeScript y el empaquetador Vite como una aplicación de página única servida de manera estática. Para ejecutar el análisis sin un servidor de cómputo, el cliente integra dos motores en WebAssembly: OpenCV.js 5.0.0 y \texttt{onnxruntime-web} 1.31.1 con cuatro hilos~\cite{ning2024onnxweb}. Tras descargar los archivos estáticos y el modelo ONNX de 12,9\,MB (1,5\,s en Chromium 158), todo el procesamiento ocurre en la memoria local del navegador.
+
+El diseño arquitectónico del sistema se representa mediante dos vistas complementarias. La Figura~\ref{fig:contexto} reserva el espacio para el diagrama de contexto del aplicativo, donde el usuario analiza imágenes sin enviarlas hacia servicios externos. Por su parte, la Figura~\ref{fig:c4-contenedores} reserva el espacio para el diagrama C4 de contenedores, que separa la interfaz en el hilo principal del cómputo en un \textit{Web Worker}~\cite{wang2025browser,ning2024onnxweb}.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Diagrama de contexto del aplicativo web con inferencia local.}
+  \label{fig:contexto}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Diagrama C4 de contenedores de la arquitectura en el navegador.}
+  \label{fig:c4-contenedores}
+\end{figure}
+
+\subsection{Módulos del cliente}
+
+El código del cliente se divide en dos contextos de ejecución que se comunican mediante paso de mensajes asíncronos. El hilo principal en React y TypeScript gestiona la carga de archivos (individuales, múltiples, carpetas o ZIP) y el selector de modo ($t = 0{,}20$ o $t = 0{,}11$). También presenta la tabla de resultados, el detalle por imagen y la exportación a valores separados por comas (CSV), notación de objetos de JavaScript (JSON) e impresión. Este hilo controla el estado visual de la aplicación y valida el formato de los archivos antes de encolarlos para su análisis.
+
+El segundo contexto corresponde a un \textit{Web Worker} dedicado que encapsula la instancia de OpenCV.js 5.0.0 y la sesión de inferencia de \texttt{onnxruntime-web} 1.31.1~\cite{ning2024onnxweb}. Esta separación responde a que ejecutar la inferencia en el hilo principal del navegador aumenta en promedio un 67,2\,\% el tiempo de renderizado de la interfaz~\cite{wang2025browser}. Al aislar el preprocesamiento y la evaluación del modelo en el \textit{Web Worker}, la interfaz mantiene su capacidad de respuesta mientras se procesan lotes de hasta 300 imágenes consecutivas.
+
+\subsection{Exportación del modelo a ONNX}
+
+Para ejecutar el clasificador seleccionado (MobileNetV3Large a 384\,px, semilla 44)~\cite{howard2019mobilenetv3} en el navegador, el modelo de Keras se exportó a ONNX con \textit{opset} 17~\cite{ning2024onnxweb}. Como el entrenamiento usó precisión mixta, los pesos y tensores se convirtieron a punto flotante de 32 bits (\texttt{float32}) para generar el archivo de 12,9\,MB. El grafo exportado recibe un tensor en formato de lote, altura, anchura y canales de $1 \times 384 \times 384 \times 3$ y entrega los \textit{logits} de las siete clases diagnósticas.
+
+Debido a la conversión a \texttt{float32}, se midió la diferencia entre el modelo original en Keras y el archivo ONNX ejecutado en el mismo equipo. En esta comprobación, la probabilidad de melanoma mostró una diferencia en el percentil 99 (p99) de 0,0236 y una diferencia absoluta máxima de 0,0587 (\pendiente{conjunto de imágenes sobre el que se midió y archivo del informe}). Esta cuantificación separa el efecto de la conversión a \texttt{float32} de la verificación posterior entre los motores ONNX de Python y del navegador.
+
+\subsection{Flujo de datos}
+
+El aplicativo procesa cada lote de imágenes mediante una secuencia determinista entre el hilo principal y el \textit{Web Worker}. La Figura~\ref{fig:casos-uso} reserva el espacio para el diagrama de casos de uso que resume las operaciones disponibles para el usuario. De forma complementaria, la Figura~\ref{fig:secuencia} reserva el espacio para el diagrama de secuencia de los siete pasos numerados que se describen a continuación:
+
+\begin{enumerate}
+  \item \textbf{Carga y validación de entrada:} el usuario selecciona una imagen, múltiples archivos, una carpeta o un contenedor ZIP; el hilo principal extrae los archivos válidos y descarta aquellos con formato no soportado.
+  \item \textbf{Decodificación de imagen:} cada archivo se decodifica a una matriz de píxeles en color (canales rojo, verde y azul) y se transfiere al \textit{Web Worker} para iniciar la tubería de análisis.
+  \item \textbf{Preprocesamiento en OpenCV.js 5.0.0:} el \textit{Web Worker} aplica en orden el redimensionado a $384 \times 384$\,px con relleno negro que conserva la proporción, el filtro de mediana de $3 \times 3$, la eliminación de vello por transformada \textit{black-hat}, umbral e \textit{inpainting} de Telea~\cite{lee1997dullrazor,telea2004inpainting} y la ecualización CLAHE con límite de recorte de 2,0~\cite{zuiderveld1994clahe}.
+  \item \textbf{Inferencia en \texttt{onnxruntime-web} 1.31.1:} la matriz preprocesada se empaqueta como tensor \texttt{float32} y se evalúa sobre el modelo ONNX (opset 17, 12,9\,MB) mediante el motor WebAssembly configurado con cuatro hilos~\cite{ning2024onnxweb}.
+  \item \textbf{Calibración de probabilidades:} los siete \textit{logits} devueltos por la red se dividen por la temperatura $T = 3{,}2933$ antes de calcular la función \textit{softmax} (Ecuación~\ref{eq:tempscaling})~\cite{guo2017calibration,penso2024calibration}.
+  \item \textbf{Regla de decisión por modo:} el sistema compara la probabilidad calibrada $p_{\text{cal}}(\texttt{mel})$ con el umbral del modo activo ($t = 0{,}20$ en modo equilibrado o $t = 0{,}11$ en modo de alta sensibilidad); si lo iguala o supera, asigna \texttt{mel}, y en caso contrario selecciona la clase más probable entre las otras seis categorías (Ecuación~\ref{eq:regla-umbral}).
+  \item \textbf{Presentación y exportación:} el \textit{Web Worker} libera los tensores temporales de memoria y devuelve el resultado al hilo principal, que actualiza la tabla de resumen, habilita la vista de detalle por imagen y ofrece la descarga en CSV, JSON o vista de impresión.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Diagrama de casos de uso del aplicativo web.}
+  \label{fig:casos-uso}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Diagrama de secuencia del flujo de preprocesamiento e inferencia en el navegador.}
+  \label{fig:secuencia}
+\end{figure}
+
+\subsection{Despliegue en Vercel}
+
+El aplicativo compilado mediante Vite se desplegó como sitio web estático en la plataforma Vercel en la dirección \pendiente{URL}. En este esquema, Vercel sirve únicamente archivos estáticos (HTML, hojas de estilo, JavaScript, binarios WebAssembly y el modelo ONNX de 12,9\,MB), sin ejecutar código en servidor~\cite{ning2024onnxweb}. Para habilitar cuatro hilos de WebAssembly con memoria compartida (\texttt{SharedArrayBuffer})~\cite{ning2024onnxweb}, se configuraron las cabeceras HTTP de aislamiento de origen (\texttt{Cross-Origin-Opener-Policy: same-origin} y \texttt{Cross-Origin-Embedder-Policy: require-corp}). Esta configuración habilita el paralelismo en CPU con los tiempos de respuesta medidos en la Sección~6.6 (Tabla~\ref{tab:requisitos-no-funcionales}).
+
+\section{Especificación de requisitos}
+
+La ingeniería del aplicativo se formalizó mediante seis requisitos funcionales (RF-01 a RF-06) y cinco requisitos no funcionales (RNF-01 a RNF-05) estructurados según el estándar IEEE. La Tabla~\ref{tab:requisitos-funcionales} detalla los seis requisitos funcionales con su identificador, descripción, prioridad, criterio de aceptación y estado de verificación documental. Como los informes del repositorio cubrieron paridad, rendimiento, memoria y accesibilidad, la columna de verificación de los RF deja el marcador donde no hay un acta separada.
+
+\begin{table}[H]
+  \centering
+  \caption{Requisitos funcionales del aplicativo web.}
+  \label{tab:requisitos-funcionales}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{l >{\hsize=0.95\hsize\linewidth=\hsize}Y >{\hsize=0.55\hsize\linewidth=\hsize}Y >{\hsize=1.55\hsize\linewidth=\hsize}Y >{\hsize=0.95\hsize\linewidth=\hsize}Y}
+    \toprule
+    ID & Descripción & Prioridad & Criterio de aceptación & Verificación \\
+    \midrule
+    RF-01 & Cargar una imagen individual & \pendiente{prioridad} & El sistema acepta un archivo de imagen válido, ejecuta la cadena de 7 pasos y muestra su predicción. & \pendiente{} \\
+    RF-02 & Cargar varias imágenes simultáneamente & \pendiente{prioridad} & El sistema procesa en lote una selección múltiple de imágenes e informa los archivos rechazados. & \pendiente{} \\
+    RF-03 & Cargar una carpeta de imágenes & \pendiente{prioridad} & El sistema recorre los archivos de imagen de un directorio local y genera la tabla consolidada de resultados. & \pendiente{} \\
+    RF-04 & Cargar un archivo comprimido ZIP & \pendiente{prioridad} & El sistema descomprime en memoria el archivo ZIP, filtra las imágenes válidas y ejecuta la inferencia por lote. & \pendiente{} \\
+    RF-05 & Seleccionar el modo de decisión & \pendiente{prioridad} & El usuario alterna entre el modo equilibrado ($t = 0{,}20$) y el de alta sensibilidad ($t = 0{,}11$), actualizando las decisiones. & \pendiente{} \\
+    RF-06 & Exportar resultados del análisis & \pendiente{prioridad} & El sistema genera archivos descargables en formatos CSV y JSON y habilita la vista de impresión. & \pendiente{} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Por su parte, la Tabla~\ref{tab:requisitos-no-funcionales} especifica los cinco requisitos no funcionales (RNF-01 a RNF-05) con sus criterios de aceptación y la verificación de la Sección~6.6. En ella constan las pruebas de paridad sobre 120 imágenes en Chromium 158 y Firefox 159 y los tiempos por imagen en un Intel Core i5-12400F (16\,GB RAM). También registra la variación de memoria con 300 imágenes consecutivas y la verificación automática con \texttt{axe-core}~\cite{w3c2023wcag22}.
+
+\begin{table}[H]
+  \centering
+  \caption{Requisitos no funcionales del aplicativo web, criterios de aceptación y verificación.}
+  \label{tab:requisitos-no-funcionales}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{l >{\hsize=0.75\hsize\linewidth=\hsize}Y >{\hsize=1.10\hsize\linewidth=\hsize}Y >{\hsize=1.15\hsize\linewidth=\hsize}Y}
+    \toprule
+    ID & Categoría & Criterio de aceptación & Verificación \\
+    \midrule
+    RNF-01 & Paridad numérica & Píxeles preprocesados y decisiones finales coincidentes con la cadena ONNX de Python en 120 imágenes ($\ge 10$ por clase). & 100\,\% de píxeles idénticos; diferencia máxima en $p_{\text{cal}}(\texttt{mel})$ de $6{,}6 \cdot 10^{-6}$; 100\,\% de coincidencia de clase y decisión en ambos modos en Chromium 158 y Firefox 159. \\
+    RNF-02 & Rendimiento & Latencia media de procesamiento e inferencia en CPU local compatible con análisis interactivo y por lotes. & En Intel Core i5-12400F (16\,GB RAM, WebAssembly 4 hilos): carga inicial 1,5\,s y media de 59\,ms/imagen (mediana 52\,ms, p95 79\,ms) en Chromium 158; carga 4,2\,s y 63\,ms/imagen en Firefox 159. \\
+    RNF-03 & Estabilidad de memoria & Procesamiento continuo de 300 imágenes seguidas sin fugas de memoria que degraden el navegador. & En Chromium 158 con 300 imágenes consecutivas, la memoria pasó de 96,4\,MB a 99,3\,MB ($+3{,}0$\,\%). \\
+    RNF-04 & Accesibilidad & 0 violaciones automáticas en reglas de las Pautas de Accesibilidad para el Contenido Web (WCAG) 2.2 niveles A y AA~\cite{w3c2023wcag22}. & Verificación automática con \texttt{axe-core} (WCAG 2.0, 2.1 y 2.2 niveles A y AA) en 6 estados de la interfaz (incluida vista móvil de 390\,px): 0 violaciones. \\
+    RNF-05 & Privacidad & Ejecución local en el cliente sin transmisión de imágenes a servidores externos~\cite{ning2024onnxweb}. & Sitio estático en Vercel; preprocesamiento en OpenCV.js 5.0.0 e inferencia en \texttt{onnxruntime-web} 1.31.1 ejecutados en un \textit{Web Worker} local. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Diseño de la interfaz}
+
+El diseño visual e interactivo del aplicativo siguió los criterios de perceptibilidad, operabilidad y comprensibilidad establecidos en la recomendación WCAG 2.2~\cite{w3c2023wcag22}. Los textos e indicadores cumplen el contraste de los niveles A y AA, los controles muestran foco visible y toda la interfaz admite navegación por teclado~\cite{w3c2023wcag22}. Adicionalmente, las probabilidades calibradas y la clase asignada se acompañan de etiquetas descriptivas en español (Tabla~\ref{tab:clases}) para facilitar su lectura.
+
+Según las delimitaciones del estudio~\cite{amaral2025esmo}, la interfaz muestra un aviso visible indicando que el aplicativo es una herramienta de apoyo sobre imágenes dermatoscópicas. Dicho aviso explicita que el sistema no emite diagnósticos médicos ni sustituye la confirmación histopatológica~\cite{amaral2025esmo}. Las Figuras~\ref{fig:vista-principal},~\ref{fig:resultados-lote} y~\ref{fig:detalle-imagen} reservan el espacio para las capturas de la vista principal, la tabla de resultados por lote y el detalle por imagen.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Captura de la vista principal de carga y selección de modo del aplicativo.}
+  \label{fig:vista-principal}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Captura de la tabla de resultados tras el procesamiento de un lote de imágenes.}
+  \label{fig:resultados-lote}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Captura de la vista de detalle de una imagen analizada.}
+  \label{fig:detalle-imagen}
+\end{figure}
+
+\section{Funcionalidades principales}
+
+\subsection{Carga versátil de imágenes}
+
+El módulo de entrada admite las cuatro modalidades de los requisitos RF-01 a RF-04 (Tabla~\ref{tab:requisitos-funcionales}): archivo individual, archivos múltiples, carpeta local o archivo ZIP. Cuando el lote contiene archivos corruptos o con extensiones distintas de imagen, el aplicativo registra el rechazo con su motivo sin interrumpir el procesamiento de las fotografías válidas restantes. La recepción y validación de los archivos se ejecuta localmente en el navegador sin enviar datos por la red~\cite{ning2024onnxweb}.
+
+\subsection{Modos de decisión configurables}
+
+Para responder al requisito RF-05, la interfaz ofrece un selector que alterna entre el modo equilibrado ($t = 0{,}20$) y el modo de alta sensibilidad ($t = 0{,}11$). Ambos modos aplican la Ecuación~\ref{eq:regla-umbral} sobre las probabilidades calibradas ($T = 3{,}2933$)~\cite{guo2017calibration} para reducir los falsos negativos de melanoma a cambio de más falsos positivos~\cite{barata2023reinforcement,marchetti2023proveai}. El cambio de modo recalcula las decisiones sobre las probabilidades ya obtenidas sin repetir la inferencia del modelo ONNX.
+
+\subsection{Tabla de resultados y vista de detalle}
+
+Al finalizar cada imagen (59\,ms en promedio en Chromium 158), la tabla muestra el archivo, la clase predicha, la alerta de melanoma y $p_{\text{cal}}(\texttt{mel})$. Al seleccionar una fila, se abre la vista de detalle con la miniatura, las probabilidades calibradas de las siete clases de HAM10000~\cite{tschandl2018ham10000} y el umbral activo. Tanto la vista de tabla como la de detalle superaron la verificación automática de accesibilidad en escritorio y en resolución móvil de 390\,px~\cite{w3c2023wcag22}.
+
+\subsection{Exportación de reportes}
+
+Según el requisito RF-06, los resultados pueden descargarse en formato CSV o en formato JSON con las probabilidades de las siete clases y el modo activo. Adicionalmente, el aplicativo dispone de una vista formateada para impresión directa o guardado en documento PDF desde el navegador. Todos los archivos de exportación se generan en la memoria del cliente e incluyen la nota de alcance como herramienta de apoyo~\cite{amaral2025esmo}.
+
+\section{Manual de usuario}
+
+Esta sección describe el procedimiento operativo paso a paso para analizar imágenes dermatoscópicas dentro del aplicativo web. Las instrucciones cubren desde el ingreso a la dirección pública hasta la descarga de reportes en los tres formatos previstos en el requisito RF-06 (Tabla~\ref{tab:requisitos-funcionales}). Para ejecutar una sesión de análisis y exportar los resultados, el usuario debe realizar los cinco pasos numerados que se detallan a continuación:
+
+\begin{enumerate}
+  \item \textbf{Acceso al aplicativo:} abrir un navegador compatible con WebAssembly (como Chromium o Firefox) e ingresar a la dirección web \pendiente{URL}, esperando la carga inicial del modelo ONNX (1,5\,s en Chromium 158 o 4,2\,s en Firefox 159).
+  \item \textbf{Selección del modo de operación:} elegir en el panel de configuración el modo \textit{Equilibrado} ($t = 0{,}20$, que obtuvo 72,3\,\% de sensibilidad y 89,6\,\% de especificidad para melanoma en la prueba de HAM10000) o el modo \textit{Alta sensibilidad} ($t = 0{,}11$, que obtuvo 80,5\,\% de sensibilidad y 82,3\,\% de especificidad).
+  \item \textbf{Carga de imágenes:} seleccionar una de las cuatro opciones de entrada en el área de carga: (a) archivo individual, (b) selección múltiple de archivos, (c) carpeta local o (d) archivo comprimido ZIP; si existen archivos no válidos, revisar el aviso de rechazos generado por la interfaz.
+  \item \textbf{Revisión de la tabla y del detalle por imagen:} consultar en la tabla de resultados la clase asignada entre las siete categorías (\texttt{akiec}, \texttt{bcc}, \texttt{bkl}, \texttt{df}, \texttt{mel}, \texttt{nv}, \texttt{vasc}) y pulsar sobre cualquier registro para abrir su vista de detalle con las probabilidades calibradas.
+  \item \textbf{Exportación de resultados:} pulsar el botón \textit{Exportar CSV} para descargar la tabla en texto plano, \textit{Exportar JSON} para obtener el registro estructurado de probabilidades o \textit{Imprimir} para generar el reporte imprimible de la sesión.
+\end{enumerate}
+
+\section{Verificación del aplicativo}
+
+El protocolo de verificación siguió las recomendaciones de Wang et al.~\cite{wang2025browser}, quienes evaluaron nueve modelos profundos en navegadores de 50 computadores y 20 teléfonos móviles. En ese estudio, la inferencia en navegador fue 16,9 veces más lenta que en CPU nativa y aumentó 67,2\,\% el tiempo de renderizado de la interfaz~\cite{wang2025browser}. Por ello, dichos autores recomiendan medir por separado la carga inicial, la latencia de inferencia, el uso de memoria y la fluidez~\cite{wang2025browser}. Siguiendo esta estructura metodológica, se evaluaron la paridad numérica, la latencia de carga e inferencia, la estabilidad de memoria y la accesibilidad del aplicativo.
+
+La prueba de paridad con Python se ejecutó sobre un subconjunto de 120 imágenes de entrenamiento que incluyó al menos 10 imágenes por cada una de las siete clases diagnósticas. La referencia fue la misma cadena con \texttt{onnxruntime} en Python (no el modelo en Keras), medida en Chromium 158 y verificada con igual resultado en Firefox 159. Las cuatro etapas de preprocesamiento en OpenCV.js 5.0.0 produjeron exactamente los mismos píxeles que en Python, con el 100\,\% de los elementos idénticos. La probabilidad calibrada de melanoma difirió como máximo en $6{,}6 \cdot 10^{-6}$, y la clase final y la decisión de melanoma coincidieron en el 100\,\% de las 120 imágenes en ambos modos.
+
+Las pruebas de rendimiento y memoria se realizaron en un equipo con Intel Core i5-12400F y 16\,GB de RAM, usando \texttt{onnxruntime-web} 1.31.1 en CPU con cuatro hilos~\cite{ning2024onnxweb}. En Chromium 158, la carga inicial tomó 1,5\,s y el procesamiento promedió 59\,ms por imagen (mediana de 52\,ms y percentil 95 de 79\,ms). En Firefox 159, la carga inicial tomó 4,2\,s y el tiempo promedio se situó en 63\,ms por imagen. Con 300 imágenes seguidas en Chromium 158, la memoria pasó de 96,4\,MB a 99,3\,MB ($+3{,}0$\,\%), confirmando la liberación de tensores tras cada imagen.
+
+Finalmente, la accesibilidad se verificó de forma automática con \texttt{axe-core} bajo las reglas WCAG 2.0, 2.1 y 2.2 niveles A y AA~\cite{w3c2023wcag22}. Se evaluaron seis estados de la interfaz: inicio, carga con rechazos, resultados, detalle, acerca del modelo y resultados en móvil de 390\,px. En los seis estados evaluados se registraron 0 violaciones automáticas. De acuerdo con el W3C~\cite{w3c2023wcag22}, esta prueba corresponde a una verificación automática y no acredita la conformidad total con WCAG 2.2 AA sin auditoría manual.

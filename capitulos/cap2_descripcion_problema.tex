@@ -1,0 +1,53 @@
+\chapter{Descripción del problema}
+
+Este capítulo plantea el problema de investigación, su formulación y las cuatro preguntas de sistematización que guían el desarrollo experimental. También expone el objetivo general y los cuatro objetivos específicos aprobados en el anteproyecto para estructurar las etapas del sistema. Finalmente, presenta la justificación sanitaria, técnica y de ingeniería junto con las delimitaciones del prototipo en nivel de madurez tecnológica (TRL) 4~\cite{amaral2025esmo,vasey2022decideai}.
+
+\section{Formulación}
+
+El melanoma cutáneo registró 337.969 casos nuevos y 58.398 muertes estimadas en el mundo durante 2024~\cite{sung2026globocan,iarc2026melanoma}. En la práctica clínica, la dermatoscopia mejora la precisión diagnóstica de los especialistas y el diagnóstico definitivo exige confirmación histopatológica~\cite{amaral2025esmo}. Aunque se han entrenado clasificadores sobre las 10.015 imágenes de HAM10000~\cite{tschandl2018ham10000}, su evaluación se distorsiona cuando imágenes de una misma lesión quedan en entrenamiento y prueba~\cite{kapoor2023leakage,abhishek2025quality}. Además, gran parte de los desarrollos permanecen como experimentos de laboratorio sin integrarse en aplicativos web accesibles~\cite{farias2026}. A partir de estas necesidades metodológicas y de despliegue, el anteproyecto definió la siguiente pregunta de investigación:
+
+\begin{quote}
+¿Cómo desarrollar un sistema de apoyo al diagnóstico de melanoma, basado en redes neuronales convolucionales y técnicas de \textit{transfer learning}, integrado en un aplicativo web que permita la clasificación de imágenes de lesiones cutáneas y obtenga una predicción de riesgo de forma accesible?
+\end{quote}
+
+\section{Sistematización}
+
+Para descomponer la pregunta de investigación, el problema se estructuró en cuatro subpreguntas alineadas con las etapas del proyecto. Estas subpreguntas abarcan la gestión de las 10.015 imágenes de HAM10000~\cite{tschandl2018ham10000}, la implementación de arquitecturas con aprendizaje por transferencia~\cite{zhang2024dive}, la selección del clasificador~\cite{maierhein2024metrics} y su despliegue web~\cite{ning2024onnxweb}. A continuación se transcriben textualmente las cuatro subpreguntas formuladas en el anteproyecto:
+
+\begin{enumerate}
+  \item ¿Cómo gestionar una base de datos compuesta por imágenes cutáneas que sea etiquetada y que permita la identificación de melanoma?
+  \item ¿Cuáles arquitecturas de aprendizaje profundo se pueden implementar para la clasificación de melanoma a partir de imágenes cutáneas?
+  \item ¿Cómo seleccionar el mejor modelo de aprendizaje profundo para la identificación de me\-la\-no\-ma?
+  \item ¿Cómo integrar el modelo de clasificación seleccionado en un aplicativo web funcional que permita a usuarios cargar imágenes cutáneas y obtener un resultado de identificación?
+\end{enumerate}
+
+\section{Objetivos}
+
+Los objetivos del trabajo establecen el propósito general y las cuatro metas operativas correspondientes a las preguntas de sistematización de la Sección~2.2. Su cumplimiento abarca desde el procesamiento del conjunto HAM10000~\cite{tschandl2018ham10000} hasta la verificación del aplicativo web con inferencia local~\cite{ning2024onnxweb,wang2025browser}. A continuación se transcriben de forma textual el objetivo general y los cuatro objetivos específicos del anteproyecto aprobado.
+
+\subsection{Objetivo general}
+
+Desarrollar un sistema de detección de cáncer de piel mediante técnicas de \textit{deep learning}, integrado en un aplicativo web, analizando imágenes de lesiones cutáneas y generando una predicción como apoyo al diagnóstico preventivo.
+
+\subsection{Objetivos específicos}
+
+\begin{enumerate}
+  \item Gestionar una base de datos compuesta por imágenes cutáneas etiquetadas aplicando limpieza, preprocesamiento y aumento de datos para el entrenamiento de métodos de aprendizaje profundo.
+  \item Implementar arquitecturas basadas en redes neuronales convolucionales (CNN) para la clasificación de melanoma a partir de imágenes cutáneas.
+  \item Seleccionar el mejor modelo de aprendizaje profundo para la identificación de melanoma mediante la evaluación de los métodos con métricas estándar de clasificación.
+  \item Integrar el modelo seleccionado en un aplicativo web funcional que permita a los usuarios cargar imágenes cutáneas y obtener un resultado de identificación de melanoma.
+\end{enumerate}
+
+\section{Justificación}
+
+Desde la perspectiva sanitaria, las 58.398 muertes y los 337.969 casos nuevos estimados en el mundo en 2024 evidencian la carga del melanoma cutáneo~\cite{sung2026globocan,iarc2026melanoma}. En Colombia, la Cuenta de Alto Costo informó que el 67,4\,\% de los casos diagnosticados en el periodo 2024 correspondió a estadios I y II~\cite{cac2025melanoma}. En ese mismo reporte nacional se registraron 11.064 casos atendidos de carácter preliminar, previos a auditoría~\cite{cac2025melanoma}. La finalidad de este prototipo se alinea conceptualmente con el ODS 3 (Salud y bienestar), que plantea fortalecer la prevención y la capacidad de los sistemas sanitarios~\cite{un2024sdg}. Esta relación expresa la orientación del sistema como herramienta de apoyo y no representa una reducción de mortalidad ni un impacto clínico demostrado~\cite{vasey2022decideai}.
+
+En el plano técnico y metodológico, la literatura ha documentado que la fuga de información produce estimaciones optimistas en 17 campos científicos~\cite{kapoor2023leakage}. En dermatología computacional, el conjunto HAM10000 incluye 1.956 lesiones con múltiples fotografías, las cuales suman 4.501 de sus 10.015 imágenes~\cite{tschandl2018ham10000}. Auditorías recientes sobre derivados de HAM10000 demostraron que partir los datos por imagen reparte fotografías de una misma lesión entre entrenamiento y prueba~\cite{abhishek2025quality}. Por ello, este trabajo aplicó una partición por lesión (5.336 lesiones en entrenamiento, 1.067 en validación y 1.067 en prueba) y midió la diferencia frente a partir por imagen. Además, el modelo seleccionado se evaluó sin reajustar sus umbrales sobre 1.512 imágenes de ISIC 2018 sin lesiones compartidas con el entrenamiento~\cite{codella2019isic2018}.
+
+Desde la ingeniería de software, la integración del clasificador mediante ONNX Runtime Web ejecuta el preprocesamiento y la inferencia directamente en el navegador del cliente~\cite{ning2024onnxweb}. Esta arquitectura evita mantener servidores con unidad de procesamiento gráfico (GPU) y procesa cada imagen en 59\,ms en promedio en Chromium sobre unidad central de procesamiento (CPU). De igual forma, las imágenes dermatoscópicas no abandonan el equipo del usuario durante el análisis~\cite{ning2024onnxweb}. Frente al planteamiento inicial del anteproyecto, se precisa que el sistema no está destinado a que la población general evalúe lesiones sin intervención clínica. El aplicativo requiere imágenes adquiridas con dermatoscopio y entrega una predicción de apoyo que no reemplaza el criterio médico ni la confirmación histopatológica~\cite{amaral2025esmo}.
+
+\section{Delimitaciones y alcance}
+
+El sistema desarrollado corresponde a un prototipo validado en entorno de laboratorio (TRL 4) mediante evaluación retrospectiva sobre conjuntos públicos~\cite{tschandl2018ham10000,codella2019isic2018}. Aunque el anteproyecto preveía una ejecución restringida a un entorno local, el aplicativo final se desplegó como sitio web estático en Vercel (\pendiente{URL}). Este cambio de alcance fue posible porque el modelo exportado a ONNX (12,9\,MB) y el preprocesamiento en OpenCV.js se ejecutan íntegramente en el navegador del usuario~\cite{ning2024onnxweb}. De este modo, el despliegue público no requiere infraestructura de cómputo en servidor ni transmisión de imágenes por la red.
+
+El alcance del modelo se circunscribe a imágenes dermatoscópicas clasificadas en las siete categorías pigmentadas definidas en HAM10000~\cite{tschandl2018ham10000}. El clasificador no fue entrenado ni evaluado con fotografías clínicas tomadas con teléfonos móviles ni incluye metadatos del paciente como edad, sexo o localización anatómica. El proyecto no comprende ensayos clínicos prospectivos con pacientes~\cite{marchetti2023proveai,heinlein2024multicenter}, estudios de integración en flujos asistenciales según la guía DECIDE-AI~\cite{vasey2022decideai} ni módulos de interoperabilidad hospitalaria. En consecuencia, toda salida del aplicativo debe interpretarse como información de apoyo sujeta a valoración dermatológica e histopatológica~\cite{amaral2025esmo}.

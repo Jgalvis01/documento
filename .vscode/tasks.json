@@ -1,0 +1,28 @@
+﻿{
+    "version":  "2.0.0",
+    "tasks":  [
+                  {
+                      "label":  "Compilar tesis (latexmk -pdf)",
+                      "type":  "shell",
+                      "command":  "latexmk",
+                      "args":  [
+                                   "-pdf",
+                                   "-interaction=nonstopmode",
+                                   "-halt-on-error",
+                                   "main.tex"
+                               ],
+                      "problemMatcher":  [
+
+                                         ],
+                      "group":  "build",
+                      "options":  {
+                                      "cwd":  "${workspaceFolder}",
+                                      "env":  {
+                                                  "LC_ALL":  "C",
+                                                  "PATH":  "C:/Users/julia/AppData/Local/Temp/vscode-agent-codex-sandbox-vCEiqi/tesis-tex-windows/TinyTeX/bin/windows;${env:PATH}",
+                                                  "LANG":  "C"
+                                              }
+                                  }
+                  }
+              ]
+}

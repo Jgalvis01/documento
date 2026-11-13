@@ -1,0 +1,157 @@
+\chapter{Resultados y validación}
+
+Este capítulo presenta las métricas en el conjunto de prueba de HAM10000 para las ocho configuraciones entrenadas y el análisis detallado del modelo seleccionado (MobileNetV3Large a 384\,px, semilla 44). También reporta la validación en las 1.512 imágenes del conjunto de prueba de ISIC 2018~\cite{codella2019isic2018} bajo los tres modos de decisión sin reajustar los umbrales. Por último, desarrolla la discusión de los hallazgos frente a la literatura~\cite{maierhein2024metrics,barata2023reinforcement} y enumera las limitaciones metodológicas, clínicas y técnicas del trabajo.
+
+\section{Resultados de todos los modelos en prueba}
+
+La Tabla~\ref{tab:resultados-modelos} resume el desempeño en la prueba de HAM10000 (1.431 imágenes) para las ocho configuraciones evaluadas con tres semillas (42, 43 y 44) bajo la clase más probable (\textit{argmax}). Como se indicó en la Sección~5.6 (Tabla~\ref{tab:cribado-384}), ConvNeXt-Tiny~\cite{liu2022convnext} se descartó en el cribado a 384\,px (Macro-F1 de 0,729) y no se evaluó en prueba. Por su parte, la Figura~\ref{fig:macrof1-modelos} reserva el espacio para comparar el Macro-F1 medio y la desviación estándar de las ocho configuraciones de la Tabla~\ref{tab:resultados-modelos}.
+
+\begin{sidewaystable}[p]
+  \centering
+  \caption{Resultados en el conjunto de prueba de HAM10000 (media de tres semillas, clase más probable).}
+  \label{tab:resultados-modelos}
+  \begin{tabularx}{\linewidth}{>{\hsize=1.50\hsize\linewidth=\hsize}Y >{\hsize=0.90\hsize\linewidth=\hsize}Y >{\hsize=0.75\hsize\linewidth=\hsize}Y >{\hsize=0.95\hsize\linewidth=\hsize}Y >{\hsize=1.10\hsize\linewidth=\hsize}Y >{\hsize=1.00\hsize\linewidth=\hsize}Y >{\hsize=1.05\hsize\linewidth=\hsize}Y >{\hsize=0.75\hsize\linewidth=\hsize}Y}
+    \toprule
+    Modelo & Resolución (px) & Accuracy & Balanced accuracy & Macro-F1 $\pm$ desv. & Sensibilidad MEL & Especificidad MEL & AUC MEL \\
+    \midrule
+    MobileNetV3Large & 384 & 82,2\,\% & 62,7\,\% & $0{,}658 \pm 0{,}009$ & 51,4\,\% & 95,9\,\% & 0,900 \\
+    EfficientNetV2-S & 384 & 82,0\,\% & 62,2\,\% & $0{,}649 \pm 0{,}007$ & 56,6\,\% & 94,7\,\% & 0,906 \\
+    DenseNet121 & 384 & 81,8\,\% & 62,2\,\% & $0{,}649 \pm 0{,}009$ & 54,7\,\% & 94,5\,\% & 0,908 \\
+    ResNet50 & 224 & 79,8\,\% & 60,0\,\% & $0{,}632 \pm 0{,}018$ & 44,0\,\% & 95,8\,\% & 0,889 \\
+    DenseNet121 & 224 & 79,5\,\% & 61,3\,\% & $0{,}629 \pm 0{,}007$ & 48,2\,\% & 94,4\,\% & 0,883 \\
+    DenseNet121-BiLSTM & 224 & 81,0\,\% & 57,5\,\% & $0{,}623 \pm 0{,}024$ & 50,1\,\% & 94,9\,\% & 0,898 \\
+    MobileNetV3Large & 224 & 79,1\,\% & 60,0\,\% & $0{,}618 \pm 0{,}005$ & 44,9\,\% & 95,4\,\% & 0,881 \\
+    CNN-BiLSTM (desde cero) & 224 & 72,6\,\% & 48,3\,\% & $0{,}492 \pm 0{,}017$ & 38,2\,\% & 94,2\,\% & 0,858 \\
+    \bottomrule
+  \end{tabularx}
+\end{sidewaystable}
+\clearpage
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Comparación del Macro-F1 medio y desviación estándar entre semillas por configuración en prueba.}
+  \label{fig:macrof1-modelos}
+\end{figure}
+
+Los datos de la Tabla~\ref{tab:resultados-modelos} muestran que el incremento de resolución de 224\,px a 384\,px mejoró todas las métricas en las arquitecturas evaluadas en ambas resoluciones. En MobileNetV3Large~\cite{howard2019mobilenetv3}, el Macro-F1 medio en prueba subió de $0{,}618 \pm 0{,}005$ a $0{,}658 \pm 0{,}009$ y el AUC de melanoma pasó de 0,881 a 0,900. De igual modo, DenseNet121~\cite{huang2017densenet} incrementó su Macro-F1 medio de $0{,}629 \pm 0{,}007$ a $0{,}649 \pm 0{,}009$ y su AUC de melanoma de 0,883 a 0,908.
+
+Entre las tres arquitecturas entrenadas a 384\,px (MobileNetV3Large con 0,658, EfficientNetV2-S con 0,649 y DenseNet121 con 0,649), la diferencia máxima en Macro-F1 medio fue de 0,009. Esta distancia es inferior a 0,01 y se sitúa en el mismo orden de magnitud que la desviación estándar entre semillas ($\pm 0{,}007$ a $\pm 0{,}009$). Al contrastar la validación (Secciones~5.6 y~5.7) con la prueba de la Tabla~\ref{tab:resultados-modelos}, todos los modelos registraron una caída de 0,07 a 0,10 puntos de Macro-F1. En el extremo inferior de la tabla, la arquitectura CNN-BiLSTM entrenada desde cero obtuvo $0{,}492 \pm 0{,}017$ de Macro-F1, 48,3\,\% de balanced accuracy y 38,2\,\% de sensibilidad para melanoma.
+
+\section{Modelo seleccionado}
+
+El modelo elegido por la regla de selección preregistrada en validación (Sección~5.7) fue MobileNetV3Large a 384\,px con la semilla 44~\cite{howard2019mobilenetv3}. En las 1.431 imágenes de prueba de HAM10000 (clase más probable), obtuvo 81,8\,\% de accuracy, 61,7\,\% de balanced accuracy y 64,7\,\% de Macro-F1 (IC 95\,\% por \textit{bootstrap}: 58,5--69,5\,\%). En la discriminación binaria de melanoma frente al resto de clases, el clasificador alcanzó un AUC de 0,903 (IC 95\,\% por \textit{bootstrap}: 0,879--0,924).
+
+La Tabla~\ref{tab:modos-decision} compara el modelo seleccionado en la prueba de HAM10000 bajo la clase más probable y los dos modos calibrados ($T = 3{,}2933$). Al pasar al modo equilibrado ($t = 0{,}20$), la sensibilidad para melanoma subió de 50,9\,\% a 72,3\,\% ($+21{,}4$ puntos), con 89,6\,\% de especificidad y 64,1\,\% de Macro-F1. En el modo de alta sensibilidad ($t = 0{,}11$), la sensibilidad para melanoma se elevó hasta 80,5\,\% a cambio de una especificidad de 82,3\,\% y una accuracy global de 75,5\,\%.
+
+\begin{table}[H]
+  \centering
+  \caption{Desempeño del modelo seleccionado (MobileNetV3Large, 384\,px, semilla 44) por modo de decisión en la prueba de HAM10000.}
+  \label{tab:modos-decision}
+  \begin{tabularx}{\textwidth}{>{\hsize=1.35\hsize\linewidth=\hsize}Y >{\hsize=0.80\hsize\linewidth=\hsize}Y >{\hsize=1.25\hsize\linewidth=\hsize}Y >{\hsize=0.80\hsize\linewidth=\hsize}Y >{\hsize=0.80\hsize\linewidth=\hsize}Y}
+    \toprule
+    Modo de decisión & Accuracy & Macro-F1 & Sensibilidad MEL & Especificidad MEL \\
+    \midrule
+    Clase más probable & 81,8\,\% & 64,7\,\% (IC 95\,\%: 58,5--69,5) & 50,9\,\% & 95,5\,\% \\
+    Equilibrado ($t = 0{,}20$) & 79,9\,\% & 64,1\,\% & 72,3\,\% & 89,6\,\% \\
+    Alta sensibilidad ($t = 0{,}11$) & 75,5\,\% & 62,0\,\% & 80,5\,\% & 82,3\,\% \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Para examinar el comportamiento desagregado entre las siete categorías diagnósticas~\cite{maierhein2024metrics}, la Tabla~\ref{tab:f1-clase} reporta el puntaje F1 por clase del modelo seleccionado bajo la regla de la clase más probable. La clase mayoritaria \texttt{nv} alcanzó un F1 de 0,92 y la clase minoritaria \texttt{vasc} obtuvo el segundo valor más alto con 0,74. En cambio, los menores puntajes F1 se registraron en \texttt{akiec} (0,55), \texttt{mel} (0,55) y \texttt{df} (0,48).
+
+\begin{table}[H]
+  \centering
+  \caption{Puntaje F1 por clase del modelo seleccionado (MobileNetV3Large, 384\,px, semilla 44, clase más probable).}
+  \label{tab:f1-clase}
+  \begin{tabularx}{\textwidth}{Yr}
+    \toprule
+    Clase & F1 \\
+    \midrule
+    \texttt{nv} & 0,92 \\
+    \texttt{vasc} & 0,74 \\
+    \texttt{bkl} & 0,66 \\
+    \texttt{bcc} & 0,63 \\
+    \texttt{akiec} & 0,55 \\
+    \texttt{mel} & 0,55 \\
+    \texttt{df} & 0,48 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La Figura~\ref{fig:matriz-confusion} reserva el espacio para la matriz de confusión del modelo seleccionado en el conjunto de prueba de HAM10000 (archivos \texttt{docs/resultados/fase\_e2/deployable\_test\_cm\_*.csv}). Con la clase más probable, acertó 889/958 \texttt{nv}, 112/157 \texttt{bkl}, 45/74 \texttt{bcc}, 23/46 \texttt{akiec}, 13/20 \texttt{vasc} y 7/17 \texttt{df}. En la clase \texttt{mel}, el modelo acertó 81 de los 159 melanomas de prueba; de los 78 falsos negativos restantes, 50 se predijeron como \texttt{nv} y 21 como \texttt{bkl}. En el modo equilibrado ($t = 0{,}20$) detectó 115 de 159 melanomas (con 87 \texttt{nv} marcados como \texttt{mel}), y en alta sensibilidad ($t = 0{,}11$) detectó 128 de 159 (con 147 \texttt{nv}). Por su parte, la Figura~\ref{fig:roc-melanoma} reserva el espacio para la curva ROC de melanoma (\texttt{docs/resultados/fase\_e2/roc\_mel.png}), sobre la cual se obtuvo el AUC de 0,903.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Matriz de confusión del modelo seleccionado en el conjunto de prueba de HAM10000.}
+  \label{fig:matriz-confusion}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Curva ROC para la clase melanoma del modelo seleccionado en la prueba de HAM10000 (AUC $= 0{,}903$).}
+  \label{fig:roc-melanoma}
+\end{figure}
+
+\section{Validación en ISIC 2018}
+
+Para evaluar la generalización fuera de la partición de HAM10000, el modelo seleccionado (MobileNetV3Large, 384\,px, semilla 44) se probó en las 1.512 imágenes de prueba de ISIC 2018 Task 3~\cite{codella2019isic2018}. Con los identificadores del ISIC Archive, se comprobó que ninguna de las 1.512 imágenes compartiera lesión con las 7.153 imágenes de entrenamiento. La evaluación mantuvo fijos y sin reajuste tanto el parámetro de temperatura $T = 3{,}2933$ como los umbrales de decisión $t = 0{,}20$ y $t = 0{,}11$. La prueba en HAM10000 se ejecutó con el modelo en Keras y la de ISIC 2018 con la cadena del aplicativo (\pendiente{confirmar}).
+
+La Tabla~\ref{tab:validacion-isic} contrasta las métricas obtenidas en la prueba de HAM10000 (1.431 imágenes) y en la prueba de ISIC 2018 (1.512 imágenes) para los tres modos de operación. En ISIC 2018, el AUC de melanoma fue de 0,908 (0,903 en HAM10000), el Macro-F1 subió a 67,9\,\% (frente a 64,7\,\%) y la balanced accuracy pasó de 61,7\,\% a 64,8\,\%. La sensibilidad para melanoma en ISIC 2018 fue de 53,8\,\% con la clase más probable, de 74,9\,\% en modo equilibrado (especificidad 87,7\,\%) y de 87,1\,\% en alta sensibilidad (especificidad 79,3\,\%).
+
+\begin{sidewaystable}[p]
+  \centering
+  \caption{Comparación del modelo seleccionado en el conjunto de prueba de HAM10000 (1.431 imágenes) y en ISIC 2018 Task 3 Test (1.512 imágenes).}
+  \label{tab:validacion-isic}
+  \begin{tabularx}{\linewidth}{>{\hsize=1.05\hsize\linewidth=\hsize}Y >{\hsize=1.20\hsize\linewidth=\hsize}Y >{\hsize=0.85\hsize\linewidth=\hsize}Y >{\hsize=0.95\hsize\linewidth=\hsize}Y >{\hsize=0.90\hsize\linewidth=\hsize}Y >{\hsize=1.05\hsize\linewidth=\hsize}Y >{\hsize=1.10\hsize\linewidth=\hsize}Y >{\hsize=0.90\hsize\linewidth=\hsize}Y}
+    \toprule
+    Conjunto & Modo & Accuracy & Balanced accuracy & Macro-F1 & Sensibilidad MEL & Especificidad MEL & AUC MEL \\
+    \midrule
+    HAM10000 & Clase más probable & 81,8\,\% & 61,7\,\% & 64,7\,\% & 50,9\,\% & 95,5\,\% & 0,903 \\
+    ISIC 2018 & Clase más probable & 78,8\,\% & 64,8\,\% & 67,9\,\% & 53,8\,\% & \pendiente{} & 0,908 \\
+    HAM10000 & Equilibrado ($t = 0{,}20$) & 79,9\,\% & 61,8\,\% & 64,1\,\% & 72,3\,\% & 89,6\,\% & 0,903 \\
+    ISIC 2018 & Equilibrado ($t = 0{,}20$) & 75,6\,\% & 64,6\,\% & 66,4\,\% & 74,9\,\% & 87,7\,\% & 0,908 \\
+    HAM10000 & Alta sensibilidad ($t = 0{,}11$) & 75,5\,\% & 60,0\,\% & 62,0\,\% & 80,5\,\% & 82,3\,\% & 0,903 \\
+    ISIC 2018 & Alta sensibilidad ($t = 0{,}11$) & 70,8\,\% & 62,5\,\% & 63,7\,\% & 87,1\,\% & 79,3\,\% & 0,908 \\
+    \bottomrule
+  \end{tabularx}
+\end{sidewaystable}
+\clearpage
+
+La caída de accuracy en ISIC 2018 frente a HAM10000 (de 81,8\,\% a 78,8\,\% con la clase más probable) obedece en parte a la diferente composición de clases~\cite{codella2019isic2018,maierhein2024metrics}. En HAM10000 la clase \texttt{nv} representa el 67,0\,\% de las imágenes, mientras que en ISIC 2018 constituye cerca del 60\,\%, diferencia que explica unos 2 puntos de caída en accuracy. El mejor resultado del reto ISIC 2018 alcanzó una balanced accuracy de 0,885~\cite{codella2019isic2018}, no comparable directamente con 0,648 (Tabla~\ref{tab:validacion-isic}) porque empleó ensambles y datos externos adicionales a HAM10000.
+
+Frente a Barata et al.~\cite{barata2023reinforcement} (cuya sensibilidad para melanoma en ISIC 2018 subió de 61,4\,\% a 79,5\,\%), los modos calibrados pasaron de 53,8\,\% a 74,9\,\% y 87,1\,\%. Al comparar debe considerarse que Barata et al.~\cite{barata2023reinforcement} evaluaron 1.511 imágenes, mientras que este trabajo evaluó las 1.512 del conjunto (\pendiente{indicar si la imagen ISIC\_0035068 está entre las 1.512 de ISIC 2018 y cómo se trató}). Además, los metadatos públicos no separan las imágenes de ISIC 2018 provenientes de centros nuevos de las capturadas en los mismos centros de HAM10000~\cite{tschandl2018ham10000,codella2019isic2018}.
+
+\section{Discusión}
+
+El primer aspecto observado en el modelo seleccionado (Tabla~\ref{tab:modos-decision}) es la brecha de 20,1 puntos porcentuales entre la accuracy (81,8\,\%) y la balanced accuracy (61,7\,\%) con la clase más probable. Esta diferencia proviene del desbalance de HAM10000, donde \texttt{nv} concentra el 67,0\,\% de la prueba (958 de 1.431 imágenes) y alcanza un F1 de 0,92 (Tabla~\ref{tab:f1-clase}). Como señalan Maier-Hein et al.~\cite{maierhein2024metrics}, una clase mayoritaria dominante hace que la accuracy refleje el acierto sobre ella y oculte los fallos en clases pequeñas, justificando el uso de Macro-F1.
+
+El segundo punto concierne al patrón de error en la clase \texttt{mel} bajo la regla estándar de la clase más probable. De los 159 melanomas de prueba de HAM10000, el modelo acertó 81 (50,9\,\% de sensibilidad) y tuvo 78 fallos, de los cuales 50 fueron a \texttt{nv} y 21 a \texttt{bkl}. Sin embargo, sobre esas mismas 1.431 imágenes el clasificador obtuvo un AUC de melanoma de 0,903 (IC 95\,\%: 0,879--0,924) y una especificidad de 95,5\,\%. Tener un AUC de 0,903 con 50,9\,\% de sensibilidad indica un problema de punto de corte: \textit{argmax} exige que $p(\texttt{mel})$ supere a \texttt{nv} y \texttt{bkl}, penalizando las lesiones limítrofes.
+
+El tercer elemento de análisis es el efecto práctico de los umbrales calibrados ($t = 0{,}20$ y $t = 0{,}11$) sobre el balance entre falsos negativos y falsos positivos de melanoma~\cite{barata2023reinforcement}. Con $t = 0{,}20$ (modo equilibrado), los melanomas detectados en HAM10000 subieron de 81 a 115 de 159 (72,3\,\%), y los nevos marcados como melanoma pasaron de 38 a 87 (especificidad 89,6\,\%). Con $t = 0{,}11$ (alta sensibilidad), la detección subió a 128 de 159 melanomas (80,5\,\%) y los nevos marcados como melanoma pasaron a 147 (especificidad 82,3\,\%). Este compromiso coincide con estudios prospectivos como PROVE-AI (96,8\,\% de sensibilidad y 37,4\,\% de especificidad)~\cite{marchetti2023proveai} y Heinlein et al. (92,1\,\% y 67,3\,\%)~\cite{heinlein2024multicenter}, donde mayor sensibilidad implica menor especificidad.
+
+En cuarto lugar, el desglose por categoría de la Tabla~\ref{tab:f1-clase} muestra que el tamaño de muestra en entrenamiento no es el único determinante del puntaje F1 por clase. Con 102 imágenes de entrenamiento, \texttt{vasc} logró el segundo mayor F1 en prueba (0,74, acertando 13 de 20); como hipótesis, una explicación posible es su color rojizo o violáceo distintivo~\cite{tschandl2018ham10000}. En cambio, \texttt{df} tuvo el menor F1 (0,48, 7 de 17 aciertos) tras entrenarse con 82 imágenes. A su lado, \texttt{akiec} obtuvo un F1 de 0,55 (23 de 46 aciertos) al confundirse en 10 casos con \texttt{bkl}~\cite{tschandl2018ham10000}.
+
+El quinto punto contrasta el Macro-F1 de 0,647 (accuracy de 81,8\,\%) de este trabajo con los valores mayores al 90\,\% de accuracy reportados en parte de la literatura sobre HAM10000~\cite{hu2024multiscale}. En numerosos estudios previos no se verifica una partición agrupada por \texttt{lesion\_id} o se aplica sobremuestreo antes de dividir los subconjuntos~\cite{abhishek2025quality,kapoor2023leakage}. En la Tabla~\ref{tab:comparacion-particiones}, partir por imagen dejó el 36,1\,\% de la prueba y el 63,5\,\% de los melanomas en entrenamiento, subiendo el Macro-F1 de $+8{,}7$ a $+9{,}2$ puntos. Sin señalar errores en trabajos concretos sin código público, estos datos muestran la dirección de la inflación producida por compartir lesiones entre particiones~\cite{kapoor2023leakage,abhishek2025quality}.
+
+Finalmente, el sexto aspecto se refiere al alcance de la calibración mediante \textit{temperature scaling}~\cite{guo2017calibration,sambyal2023calibration}. El ajuste de $T = 3{,}2933$ en validación suavizó las probabilidades de salida y permitió trasladar sin cambios los umbrales $t = 0{,}20$ y $t = 0{,}11$ al conjunto ISIC 2018 (Tabla~\ref{tab:validacion-isic}). No obstante, según Sambyal et al.~\cite{sambyal2023calibration} y Penso et al.~\cite{penso2024calibration}, escalar por un único parámetro $T$ no altera las confusiones entre clases cercanas y depende de las etiquetas. Tampoco convierte la probabilidad calibrada en una estimación de riesgo clínico individualizado~\cite{sambyal2023calibration,penso2024calibration}.
+
+\section{Limitaciones}
+
+El análisis de los resultados experimentales y del prototipo web debe interpretarse dentro de diez limitaciones metodológicas, de datos y de validación clínica~\cite{collins2024tripodai,vasey2022decideai}. Cada una de estas restricciones acota las conclusiones del estudio y define los requerimientos para futuras iteraciones del sistema. A continuación se enumeran las limitaciones identificadas junto con su consecuencia directa:
+
+\begin{itemize}
+  \item \textbf{Evaluación sobre una única partición agrupada:} los experimentos se ejecutaron sobre una sola división fija 5/7--1/7--1/7 (semilla 42) en lugar de un esquema de validación cruzada de $k$ pliegues agrupados, lo que impide estimar la varianza del rendimiento frente a distintas asignaciones de lesiones entre entrenamiento y prueba.
+  \item \textbf{Doble apertura del conjunto de prueba:} el conjunto de prueba de HAM10000 se utilizó en dos momentos del proyecto (al concluir la etapa de 224\,px y al concluir la etapa de 384\,px); aunque en ambas ocasiones la regla de selección estaba fijada en validación antes de abrirlo, el reuso del conjunto de prueba reduce la independencia estricta de la segunda evaluación~\cite{kapoor2023leakage}.
+  \item \textbf{Tamaño reducido de las clases minoritarias en prueba:} las categorías \texttt{df}, \texttt{vasc} y \texttt{akiec} cuentan únicamente con 17, 20 y 46 imágenes en el conjunto de prueba (Tabla~\ref{tab:particion}), lo que amplía la incertidumbre estadística de sus métricas individuales y explica parte del ancho del intervalo de confianza del Macro-F1 (58,5\,\%--69,5\,\%).
+  \item \textbf{Meta inicial de Macro-F1 no alcanzada:} el modelo seleccionado obtuvo un Macro-F1 en prueba de 0,647, valor inferior a la meta de 0,80 planteada inicialmente en el anteproyecto, como consecuencia de evaluar bajo una partición estricta por lesión sin fuga de datos y con siete clases desbalanceadas (Tabla~\ref{tab:distribucion}).
+  \item \textbf{Restricción a imágenes dermatoscópicas sin metadatos clínicos:} el clasificador opera exclusivamente con píxeles de imágenes dermatoscópicas y no incorpora variables clínicas del paciente (como edad, sexo, antecedentes o localización anatómica) ni es aplicable a fotografías macroscópicas tomadas con teléfonos móviles~\cite{amaral2025esmo}.
+  \item \textbf{Agrupación por lesión y no por paciente, con duplicados residuales:} dado que HAM10000 no incluye un identificador único de paciente~\cite{tschandl2018ham10000}, agrupar por \texttt{lesion\_id} no impide que lesiones distintas de una misma persona queden en subconjuntos diferentes; además, la auditoría contra los 18 pares de~\cite{abhishek2025quality} detectó 2 imágenes de prueba de la clase \texttt{bkl} (0,14\,\%) que tienen un duplicado con distinto \texttt{lesion\_id} en entrenamiento.
+  \item \textbf{Validación externa parcialmente solapada en origen institucional:} aunque se verificó que ninguna de las 1.512 imágenes de ISIC 2018 compartiera lesión con el entrenamiento, dicho conjunto incluye muestras de las mismas instituciones que aportaron a HAM10000 y no fue posible aislar las imágenes de centros nuevos~\cite{codella2019isic2018,tschandl2018ham10000}.
+  \item \textbf{Representatividad demográfica y de fototipos cutáneos:} los datos de HAM10000 proceden de poblaciones de Austria y Australia con predominio de pieles claras~\cite{tschandl2018ham10000}, por lo que el desempeño del modelo no puede extrapolarse a fototipos oscuros sin una validación específica que controle los sesgos documentados en la literatura~\cite{daneshjou2022disparities}.
+  \item \textbf{Ausencia de validación clínica prospectiva:} todas las pruebas realizadas son retrospectivas en laboratorio (TRL 4) y no evalúan la interacción del médico con la herramienta en la consulta real ni su impacto en las decisiones clínicas según los lineamientos DECIDE-AI~\cite{vasey2022decideai,marchetti2023proveai,heinlein2024multicenter}.
+  \item \textbf{Verificación de accesibilidad exclusivamente automática:} la inspección con \texttt{axe-core} cubrió solo las reglas verificables de forma programática en seis estados de la interfaz, por lo que no sustituye una evaluación manual con tecnologías de asistencia para certificar la totalidad de WCAG 2.2 AA~\cite{w3c2023wcag22}.
+\end{itemize}

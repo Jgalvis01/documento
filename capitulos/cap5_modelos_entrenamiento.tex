@@ -1,0 +1,126 @@
+\chapter{Modelos y entrenamiento}
+
+Este capítulo documenta las siete arquitecturas evaluadas, la receta de entrenamiento en dos fases y los ajustes derivados del diagnóstico inicial en validación~\cite{zhang2024dive}. Además, presenta la comparación experimental entre la partición por imagen y por lesión~\cite{kapoor2023leakage}, el escalado a 384\,px y la regla preregistrada que seleccionó MobileNetV3Large~\cite{howard2019mobilenetv3}. Por último, describe el ajuste de calibración por temperatura ($T = 3{,}2933$)~\cite{guo2017calibration} y la definición de los umbrales de decisión para melanoma~\cite{barata2023reinforcement}.
+
+\section{Arquitecturas evaluadas}
+
+Para cubrir el segundo objetivo específico, se implementaron siete arquitecturas de aprendizaje profundo: cinco bases preentrenadas en ImageNet~\cite{deng2009imagenet}, una variante híbrida preentrenada y un modelo híbrido entrenado desde cero. Las cinco redes convolucionales puras correspondieron a DenseNet121~\cite{huang2017densenet}, ResNet50~\cite{he2016resnet}, MobileNetV3Large~\cite{howard2019mobilenetv3}, EfficientNetV2-S~\cite{tan2021efficientnetv2} y ConvNeXt-Tiny~\cite{liu2022convnext}. Las dos arquitecturas con capas recurrentes fueron DenseNet121-BiLSTM (con base preentrenada en ImageNet) y una red CNN-BiLSTM entrenada íntegramente desde cero sobre HAM10000~\cite{zhang2024dive,tschandl2018ham10000}.
+
+La Tabla~\ref{tab:arquitecturas} resume cada arquitectura junto con su número de parámetros, el origen de sus pesos iniciales y las resoluciones espaciales en las que fue evaluada. En ella se observa que MobileNetV3Large presenta el menor tamaño entre las redes caracterizadas a 384\,px, con 3,24 millones de parámetros, mientras que ConvNeXt-Tiny alcanza 28,02 millones de parámetros~\cite{howard2019mobilenetv3,liu2022convnext}. En MobileNetV3Large, la cabeza clasificadora incluyó agrupamiento promedio global, \textit{Dropout} de 0,3, capa densa de 256 unidades con ReLU, \textit{Dropout} de 0,2 y salida de siete unidades con \textit{softmax}~\cite{howard2019mobilenetv3,zhang2024dive}. La Figura~\ref{fig:arquitectura-modelo} reserva el espacio para el diagrama de bloques de esta arquitectura seleccionada.
+
+\begin{table}[H]
+  \centering
+  \caption{Arquitecturas evaluadas, número de parámetros, preentrenamiento y resoluciones de entrada.}
+  \label{tab:arquitecturas}
+  \begin{tabularx}{\textwidth}{>{\hsize=1.3\hsize\linewidth=\hsize}Y >{\hsize=0.8\hsize\linewidth=\hsize}Y >{\hsize=0.95\hsize\linewidth=\hsize}Y >{\hsize=0.95\hsize\linewidth=\hsize}Y}
+    \toprule
+    Arquitectura & Parámetros (M) & Preentrenamiento & Resoluciones evaluadas \\
+    \midrule
+    MobileNetV3Large~\cite{howard2019mobilenetv3} & 3,24 & ImageNet~\cite{deng2009imagenet} & 224\,px y 384\,px \\
+    DenseNet121~\cite{huang2017densenet} & 7,30 & ImageNet~\cite{deng2009imagenet} & 224\,px y 384\,px \\
+    EfficientNetV2-S~\cite{tan2021efficientnetv2} & 20,66 & ImageNet~\cite{deng2009imagenet} & 224\,px y 384\,px \\
+    ConvNeXt-Tiny~\cite{liu2022convnext} & 28,02 & ImageNet~\cite{deng2009imagenet} & 384\,px (cribado) \\
+    ResNet50~\cite{he2016resnet} & \pendiente{parámetros ResNet50} & ImageNet~\cite{deng2009imagenet} & 224\,px \\
+    DenseNet121-BiLSTM~\cite{huang2017densenet,zhang2024dive} & \pendiente{parámetros DenseNet121-BiLSTM} & ImageNet (base)~\cite{deng2009imagenet} & 224\,px \\
+    CNN-BiLSTM (desde cero)~\cite{zhang2024dive} & \pendiente{parámetros CNN-BiLSTM} & Ninguno (desde cero) & 224\,px \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Diagrama de la arquitectura MobileNetV3Large y su cabeza de clasificación.}
+  \label{fig:arquitectura-modelo}
+\end{figure}
+
+\section{Estrategia de entrenamiento}
+
+Todas las redes preentrenadas se ajustaron en dos fases con el optimizador Adam, entropía cruzada con pesos de clase (Tabla~\ref{tab:pesos}) y precisión mixta~\cite{zhang2024dive}. En la Fase~1 se congeló la base convolucional y se entrenó solo la cabeza clasificadora con tasa de $3 \cdot 10^{-4}$ hasta por 15 épocas. En la Fase~2 se descongeló toda la red excepto las capas de normalización por lotes (BatchNorm) durante un máximo de 40 épocas. En esta segunda etapa se aplicó un calentamiento lineal (\textit{warmup}) de 2 épocas desde $1 \cdot 10^{-5}$ hasta $5 \cdot 10^{-5}$, seguido de un decaimiento coseno hasta $1 \cdot 10^{-6}$.
+
+Las capas BatchNorm permanecieron congeladas en la Fase~2 para conservar las estadísticas móviles de ImageNet~\cite{deng2009imagenet} y evitar oscilaciones con lotes de 32 o 64 imágenes~\cite{zhang2024dive}. La parada temprana y la reducción de tasa se guiaron por el Macro-F1 de validación, con paciencia de 15 épocas y un mínimo de 20 épocas. Por su parte, la red CNN-BiLSTM se entrenó desde cero en una fase de hasta 100 épocas con lote de 64 y decaimiento coseno ($1 \cdot 10^{-5} \to 1 \cdot 10^{-3} \to 1 \cdot 10^{-5}$).
+
+El lote fue de 64 imágenes a 224\,px y de 32 a 384\,px, ejecutándose en una estación con GPU NVIDIA RTX A4000 del laboratorio universitario. Cada configuración se entrenó con tres semillas aleatorias independientes (42, 43 y 44) y las evaluaciones utilizaron los pesos de la última época sin aumento en tiempo de prueba (TTA). El conjunto de prueba se usó dos veces (fase de 224\,px y fase de 384\,px), siempre con la selección fijada antes en validación~\cite{kapoor2023leakage}.
+
+\section{Diagnóstico inicial y ajustes}
+
+El punto de partida experimental con DenseNet121 a 224\,px produjo en su primera corrida un Macro-F1 de validación de 0,618. Para identificar los factores que limitaban el aprendizaje de las clases minoritarias, se ejecutaron seis corridas sucesivas de diagnóstico sobre el conjunto de validación. El diagnóstico reveló tres causas: caída prematura de la tasa de aprendizaje, pesos inversos directos excesivos (\texttt{df} pesaba 58 veces más que \texttt{nv}) y ajuste fino insuficiente.
+
+El calentamiento con decaimiento coseno, los pesos por raíz cuadrada (Ecuación~\ref{eq:pesos-clase}) y la ampliación de la Fase~2 a 40 épocas corrigieron estas limitaciones. Tras aplicar estos tres ajustes en la receta base, DenseNet121 a 224\,px elevó su Macro-F1 de validación de 0,618 a 0,685 y alcanzó una accuracy de validación de 0,806. Esta receta estabilizada se fijó como protocolo estándar para comparar todas las arquitecturas siguientes.
+
+\section{Comparación a 224 px y ronda de regularización}
+
+En la evaluación comparativa a 224\,px sobre el conjunto de validación, todas las arquitecturas con preentrenamiento en ImageNet~\cite{deng2009imagenet} se ubicaron en el rango de 0,66 a 0,70 de Macro-F1 medio. En contraste, la red CNN-BiLSTM entrenada desde cero alcanzó un Macro-F1 de validación de 0,56. Como hipótesis, una explicación posible es que 7.153 imágenes no bastan para aprender desde cero los filtros convolucionales y las capas recurrentes sin preentrenamiento~\cite{zhang2024dive}.
+
+En MobileNetV3Large a 224\,px se obtuvo un Macro-F1 medio de validación de 0,697 y una brecha de $+0{,}24$ puntos entre entrenamiento y validación. Con el objetivo de reducir esa brecha de generalización, se ejecutó una ronda específica de regularización evaluada en validación con tres semillas por variante. La primera variante incorporó \textit{label smoothing} de 0,1~\cite{hu2024multiscale} y el optimizador AdamW, con lo cual el Macro-F1 medio de validación descendió de 0,697 a 0,680. La segunda variante probó aumento fuerte (rotación $\pm 30^\circ$, zoom $\pm 20$\,\%, brillo/contraste $\pm 0{,}2$ y borrado del 5--20\,\% del área), bajando el Macro-F1 a 0,625; ninguna variante se adoptó.
+
+\section{Partición por imagen frente a partición por lesión}
+
+Para cuantificar el efecto de la unidad de partición sobre las métricas de evaluación~\cite{kapoor2023leakage,abhishek2025quality}, se construyó en paralelo una partición aleatoria por imagen a 224\,px. Esta división utilizó la función \texttt{train\_test\_split} de scikit-learn~\cite{pedregosa2011sklearn} en proporción estratificada 70/15/15 con semilla 42, lo que generó 7.010 imágenes de entrenamiento, 1.502 de validación y 1.503 de prueba. Al cruzar los \texttt{lesion\_id}, se comprobó que el 36,1\,\% de la prueba (543 de 1.503 imágenes) tenía otra fotografía de la misma lesión en entrenamiento. En el caso específico de la clase \texttt{mel}, el 63,5\,\% de los melanomas de prueba (106 de 167) tenía otra imagen de la misma lesión dentro del entrenamiento.
+
+La Tabla~\ref{tab:comparacion-particiones} compara la media de tres semillas en prueba a 224\,px para DenseNet121 y CNN-BiLSTM bajo ambos protocolos de partición. En DenseNet121, partir por imagen subió la accuracy en $+3{,}3$ puntos porcentuales y el Macro-F1 en $+8{,}7$ puntos (de 62,9\,\% a 71,6\,\%). En la arquitectura CNN-BiLSTM, la partición por imagen aumentó la accuracy en $+4{,}2$ puntos y el Macro-F1 en $+9{,}2$ puntos porcentuales (de 49,2\,\% a 58,4\,\%).
+
+\begin{table}[H]
+  \centering
+  \caption{Comparación entre partición por imagen y partición por lesión a 224\,px (prueba, media de tres semillas).}
+  \label{tab:comparacion-particiones}
+  \begin{tabularx}{\textwidth}{YYrr}
+    \toprule
+    Modelo & Unidad de partición & Accuracy & Macro-F1 \\
+    \midrule
+    DenseNet121 & Por imagen & 82,8\,\% & 71,6\,\% \\
+    DenseNet121 & Por lesión & 79,5\,\% & 62,9\,\% \\
+    CNN-BiLSTM & Por imagen & 76,8\,\% & 58,4\,\% \\
+    CNN-BiLSTM & Por lesión & 72,6\,\% & 49,2\,\% \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Estos incrementos de $+8{,}7$ a $+9{,}2$ puntos en Macro-F1 aportan evidencia empírica de inflación de métricas por fuga de información entre entrenamiento y prueba~\cite{kapoor2023leakage,abhishek2025quality}. Se aclara que ambos conjuntos de prueba no contienen las mismas imágenes (1.503 frente a 1.431), por lo que no toda la diferencia se atribuye a la fuga~\cite{kapoor2023leakage}. En virtud de la contaminación comprobada en el 36,1\,\% de la prueba, la partición por imagen se descartó definitivamente para el resto del estudio.
+
+\section{Resolución de 384 px}
+
+Para evaluar el efecto de una mayor resolución en la partición por lesión, se ejecutó un cribado a 384\,px en validación (semilla 42) con cuatro arquitecturas. La Tabla~\ref{tab:cribado-384} presenta el Macro-F1 de validación, el conteo de parámetros y el tiempo promedio por época de cada candidato. Las tres primeras arquitecturas superaron el umbral de 0,73 de Macro-F1 en validación, encabezadas por MobileNetV3Large con 0,757 y 28,3\,s por época.
+
+\begin{table}[H]
+  \centering
+  \caption{Cribado de arquitecturas a 384\,px en el conjunto de validación (semilla 42).}
+  \label{tab:cribado-384}
+  \begin{tabularx}{\textwidth}{Yrrr}
+    \toprule
+    Arquitectura & Macro-F1 (validación) & Parámetros (M) & Tiempo por época (s) \\
+    \midrule
+    MobileNetV3Large~\cite{howard2019mobilenetv3} & 0,757 & 3,24 & 28,3 \\
+    EfficientNetV2-S~\cite{tan2021efficientnetv2} & 0,749 & 20,66 & 34,7 \\
+    DenseNet121~\cite{huang2017densenet} & 0,733 & 7,30 & 35,3 \\
+    ConvNeXt-Tiny~\cite{liu2022convnext} & 0,729 & 28,02 & 37,0 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Según la Tabla~\ref{tab:cribado-384}, ConvNeXt-Tiny~\cite{liu2022convnext} se descartó tras el cribado y no se entrenó con las semillas 43 y 44 ni se evaluó en prueba. Esta exclusión se debió a que obtuvo el menor Macro-F1 en validación (0,729), el mayor número de parámetros (28,02\,M) y el mayor tiempo por época (37,0\,s). Como hipótesis, una explicación posible es que la resolución de 384\,px conserva detalles morfológicos finos de la lesión, como bordes irregulares y glóbulos de pigmento.
+
+\section{Regla de selección del modelo}
+
+Antes de abrir la prueba a 384\,px, se fijó una regla de selección basada únicamente en las métricas del conjunto de validación~\cite{kapoor2023leakage,maierhein2024metrics}. En el primer paso se calcula para cada arquitectura la media del Macro-F1 de validación entre las tres semillas (42, 43 y 44). En el segundo paso empatan las arquitecturas situadas a menos de $\delta = 0{,}0112$ de la mejor media, donde $\delta$ es la raíz de la varianza media entre semillas. En el tercer paso desempatan por AUC media de melanoma en validación; si difieren en menos de 0,005, gana la de menos parámetros y se despliega la semilla mediana.
+
+Al finalizar las tres semillas a 384\,px en validación, EfficientNetV2-S obtuvo la mayor media de Macro-F1 con 0,748, seguida por MobileNetV3Large con 0,738. Dado que la diferencia entre ambas medias fue de 0,0100 (menor que el margen de empate $\delta = 0{,}0112$), las dos arquitecturas empataron en el primer criterio. En el desempate por AUC de melanoma en validación, MobileNetV3Large superó a EfficientNetV2-S con 0,901 frente a 0,886 (diferencia de 0,015, mayor que 0,005).
+
+Se deja constancia de que, si la selección se hubiera basado únicamente en el promedio de Macro-F1 sin margen de empate, habría resultado elegida EfficientNetV2-S (0,748 frente a 0,738). El desempate por AUC de melanoma responde a la relevancia clínica de esta neoplasia~\cite{amaral2025esmo,maierhein2024metrics} y seleccionó un modelo con 6,4 veces menos parámetros (3,24\,M frente a 20,66\,M). De las tres corridas de MobileNetV3Large a 384\,px, la regla seleccionó para el despliegue y la validación externa la semilla 44, correspondiente al valor mediano de Macro-F1 en validación.
+
+\section{Calibración y umbrales de decisión}
+
+Una vez seleccionado el modelo MobileNetV3Large a 384\,px (semilla 44), se evaluó la calibración de sus probabilidades sobre las 1.431 imágenes del conjunto de validación~\cite{sambyal2023calibration,penso2024calibration}. En clasificación de imágenes médicas, las redes profundas entrenadas con entropía cruzada ponderada suelen producir distribuciones \textit{softmax} concentradas en valores extremos que no coinciden con la probabilidad empírica de acierto~\cite{guo2017calibration,sambyal2023calibration}. Para corregir esta sobreconfianza antes de fijar puntos de corte clínicos, se ajustó sobre el conjunto de validación el parámetro de \textit{temperature scaling} (Ecuación~\ref{eq:tempscaling})~\cite{guo2017calibration,penso2024calibration}, obteniéndose una temperatura de $T = 3{,}2933$.
+
+Con los \textit{logits} escalados por $T = 3{,}2933$, se definieron modos que sustituyen la clase más probable (\textit{argmax}) por un umbral $t$ sobre $p_{\text{cal}}(\texttt{mel})$. Bajo esta regla jerárquica, el sistema predice la clase \texttt{mel} siempre que se cumpla la condición de la Ecuación~\ref{eq:regla-umbral}:
+
+\begin{equation}
+  \hat{y} =
+  \begin{cases}
+    \texttt{mel}, & \text{si } p_{\text{cal}}(\texttt{mel}) \ge t \\
+    \argmax_{c \neq \texttt{mel}} p_{\text{cal}}(c), & \text{si } p_{\text{cal}}(\texttt{mel}) < t
+  \end{cases}
+  \label{eq:regla-umbral}
+\end{equation}
+
+Sobre la curva de validación del modelo calibrado se establecieron dos umbrales operativos para el aplicativo web: un modo equilibrado con $t = 0{,}20$ y un modo de alta sensibilidad con $t = 0{,}11$. El propósito de ambos modos es intercambiar falsos negativos de melanoma por falsos positivos, dado que omitir una lesión maligna conlleva un riesgo clínico mayor que derivar un nevo benigno a revisión dermatológica~\cite{barata2023reinforcement,amaral2025esmo}. Esta configuración recoge también la evidencia del estudio prospectivo PROVE-AI~\cite{marchetti2023proveai}, según la cual elevar la sensibilidad mediante umbrales bajos incrementa la tasa de falsos positivos y exige reportar conjuntamente sensibilidad y especificidad.

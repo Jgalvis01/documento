@@ -1,0 +1,10 @@
+The visual differentiation of pigmented skin lesions and the identification of melanoma represent a clinical challenge within dermoscopic analysis, due to the morphological similarity between malignant neoplasms and benign lesions. In response to this need, deep learning models based on convolutional neural networks have been established as a computational alternative to assist dermoscopic assessment and guide the prioritization of lesions subject to histopathological confirmation.
+
+This work presents a computational diagnostic support system for the classification of dermoscopic skin lesion images across the seven diagnostic categories of the HAM10000 dataset. The development incorporates a four-stage preprocessing pipeline with noise attenuation, morphological hair removal, and adaptive contrast equalization, together with the comparison of convolutional architectures under a lesion-grouped partition, external validation on the ISIC 2018 dataset, and a probability calibration scheme with configurable decision modes.
+
+The solution was implemented as a web platform that runs the preprocessing and inference core directly in the browser using Web Workers, OpenCV.js, and ONNX Runtime Web, together with a graphical interface developed with React and TypeScript. This approach makes it possible to analyze individual photographs or image batches, inspect the probability distribution across diagnostic categories, and export reports in standardized formats, without sending images to external servers or relying on dedicated computing infrastructure.
+
+The application seeks to facilitate access to computational tools for dermoscopic classification and serve as an analysis and experimentation environment for students, researchers, and healthcare professionals, operating exclusively as a support resource that does not perform definitive diagnoses or replace evaluation by a dermatologist.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} melanoma, deep learning, convolutional neural networks, dermoscopy, web application.

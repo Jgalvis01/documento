@@ -1,0 +1,134 @@
+\begin{thebibliography}{10}
+
+\bibitem{tschandl2018ham10000}
+P.~Tschandl, C.~Rosendahl, and H.~Kittler, ``The {HAM10000} dataset, a large collection of multi-source dermatoscopic images of common pigmented skin lesions,'' {\em Scientific Data}, vol.~5, p.~180161, 2018.
+
+\bibitem{amaral2025esmo}
+T.~Amaral, M.~Ottaviano, A.~Arance, {\em et~al.}, ``Cutaneous melanoma: {ESMO} clinical practice guideline for diagnosis, treatment and follow-up,'' {\em Annals of Oncology}, vol.~36, no.~1, pp.~10--30, 2025.
+
+\bibitem{sung2026globocan}
+H.~Sung, A.~M. Filho, M.~Laversanne, J.~Ferlay, R.~L. Siegel, I.~Soerjomataram, A.~Jemal, and F.~Bray, ``Global cancer statistics 2024: {GLOBOCAN} estimates of incidence and mortality worldwide for 34 cancers in 186 countries,'' {\em CA: A Cancer Journal for Clinicians}, 2026.
+
+\bibitem{iarc2026melanoma}
+{International Agency for Research on Cancer}, ``Melanoma of skin fact sheet, {GLOBOCAN} 2024 estimates, version 1.0.'' Global Cancer Observatory, World Health Organization, 2026.
+
+\bibitem{cac2025melanoma}
+{Cuenta de Alto Costo}, ``D{\'i}a mundial del melanoma cut{\'a}neo 2025.'' Bolet{\'i}n de prensa, Bogot{\'a}, 23 de mayo de 2025, 2025.
+
+\bibitem{un2024sdg}
+{United Nations}, ``The sustainable development goals report 2024. {Goal} 3: Good health and well-being.'' United Nations, 2024.
+
+\bibitem{goodfellow2016deep}
+I.~Goodfellow, Y.~Bengio, and A.~Courville, {\em Deep Learning}.
+\newblock Cambridge, MA: MIT Press, 2016.
+
+\bibitem{esteva2017dermatologist}
+A.~Esteva, B.~Kuprel, R.~A. Novoa, {\em et~al.}, ``Dermatologist-level classification of skin cancer with deep neural networks,'' {\em Nature}, vol.~542, pp.~115--118, 2017.
+
+\bibitem{sariates2025}
+M.~Sar{\i}ate{\c{s}} and E.~{\"O}zbay, ``Transfer learning-based ensemble of {CNNs} and vision transformers for accurate melanoma diagnosis,'' {\em Diagnostics}, vol.~15, no.~15, p.~1928, 2025.
+
+\bibitem{marchetti2023proveai}
+M.~A. Marchetti, E.~A. Cowen, N.~R. Kurtansky, {\em et~al.}, ``Prospective validation of dermoscopy-based open-source artificial intelligence for melanoma diagnosis ({PROVE-AI} study),'' {\em npj Digital Medicine}, vol.~6, p.~127, 2023.
+
+\bibitem{heinlein2024multicenter}
+L.~Heinlein, R.~C. Maron, A.~Hekler, {\em et~al.}, ``Prospective multicenter study using artificial intelligence to improve dermoscopic melanoma diagnosis in patient care,'' {\em Communications Medicine}, vol.~4, p.~177, 2024.
+
+\bibitem{deng2009imagenet}
+J.~Deng, W.~Dong, R.~Socher, L.-J. Li, K.~Li, and L.~Fei-Fei, ``{ImageNet}: A large-scale hierarchical image database,'' in {\em Proceedings of the {IEEE} Conference on Computer Vision and Pattern Recognition ({CVPR})}, pp.~248--255, 2009.
+
+\bibitem{zhang2024dive}
+A.~Zhang, Z.~C. Lipton, M.~Li, and A.~J. Smola, {\em Dive into Deep Learning}.
+\newblock Cambridge University Press, 2024.
+
+\bibitem{cherukuri2025}
+S.~Cherukuri and S.~D. {Vara Prasad}, ``{EnsembleSkinNet}: A transfer learning-based framework for efficient skin cancer detection with explainable {AI} integration,'' {\em Frontiers in Oncology}, vol.~15, p.~1699960, 2025.
+
+\bibitem{bello2024densenet}
+A.~Bello, S.-C. Ng, and M.-F. Leung, ``Skin cancer classification using fine-tuned transfer learning of {DENSENET-121},'' {\em Applied Sciences}, vol.~14, no.~17, p.~7707, 2024.
+
+\bibitem{farias2026}
+F.~K. Far{\'i}as~Rivera {\em et~al.}, ``Aplicaci{\'o}n web para la detecci{\'o}n de c{\'a}ncer de piel basada en aprendizaje profundo,'' {\em Novasinergia}, vol.~9, no.~1, pp.~41--58, 2026.
+
+\bibitem{almamun2025}
+A.~Al~Mamun, P.~C. Ray, M.~R. Ul~Nasib, A.~Das, J.~Uddin, and M.~N. Absur, ``Optimizing deep learning for skin cancer classification: A computationally efficient {CNN} with minimal accuracy trade-off.'' Preprint, arXiv:2505.21597, 2025.
+
+\bibitem{kapoor2023leakage}
+S.~Kapoor and A.~Narayanan, ``Leakage and the reproducibility crisis in machine-learning-based science,'' {\em Patterns}, vol.~4, no.~9, p.~100804, 2023.
+
+\bibitem{abhishek2025quality}
+K.~Abhishek, A.~Jain, and G.~Hamarneh, ``Investigating the quality of {DermaMNIST} and {Fitzpatrick17k} dermatological image datasets,'' {\em Scientific Data}, vol.~12, p.~196, 2025.
+
+\bibitem{ning2024onnxweb}
+E.~Ning, Y.~Wang, and S.~Jandhyala, ``{ONNX Runtime Web} unleashes generative {AI} in the browser using {WebGPU}.'' Microsoft Open Source Blog, 29 de febrero de 2024, 2024.
+
+\bibitem{wang2025browser}
+Q.~Wang, S.~Jiang, Z.~Chen, X.~Cao, Y.~Li, A.~Li, Y.~Ma, T.~Cao, and X.~Liu, ``Anatomizing deep learning inference in web browsers,'' {\em ACM Transactions on Software Engineering and Methodology}, vol.~34, no.~2, p.~47, 2025.
+
+\bibitem{howard2019mobilenetv3}
+A.~Howard, M.~Sandler, G.~Chu, {\em et~al.}, ``Searching for {MobileNetV3},'' in {\em Proceedings of the {IEEE/CVF} International Conference on Computer Vision ({ICCV})}, pp.~1314--1324, 2019.
+
+\bibitem{codella2019isic2018}
+N.~Codella, V.~Rotemberg, P.~Tschandl, {\em et~al.}, ``Skin lesion analysis toward melanoma detection 2018: A challenge hosted by the {ISIC}.'' arXiv:1902.03368, 2019.
+
+\bibitem{guo2017calibration}
+C.~Guo, G.~Pleiss, Y.~Sun, and K.~Q. Weinberger, ``On calibration of modern neural networks,'' in {\em Proceedings of the 34th International Conference on Machine Learning ({ICML})}, vol.~70 of {\em Proceedings of Machine Learning Research}, pp.~1321--1330, 2017.
+
+\bibitem{maierhein2024metrics}
+L.~Maier-Hein, A.~Reinke, P.~Godau, {\em et~al.}, ``Metrics reloaded: recommendations for image analysis validation,'' {\em Nature Methods}, vol.~21, pp.~195--212, 2024.
+
+\bibitem{vasey2022decideai}
+B.~Vasey, M.~Nagendran, B.~Campbell, {\em et~al.}, ``Reporting guideline for the early-stage clinical evaluation of decision support systems driven by artificial intelligence: {DECIDE-AI},'' {\em Nature Medicine}, vol.~28, pp.~924--933, 2022.
+
+\bibitem{daneshjou2022disparities}
+R.~Daneshjou, K.~Vodrahalli, R.~A. Novoa, {\em et~al.}, ``Disparities in dermatology {AI} performance on a diverse, curated clinical image set,'' {\em Science Advances}, vol.~8, no.~31, p.~eabq6147, 2022.
+
+\bibitem{collins2024tripodai}
+G.~S. Collins, K.~G.~M. Moons, P.~Dhiman, {\em et~al.}, ``{TRIPOD+AI} statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods,'' {\em BMJ}, vol.~385, p.~e078378, 2024.
+
+\bibitem{barata2023reinforcement}
+C.~Barata, V.~Rotemberg, N.~C.~F. Codella, {\em et~al.}, ``A reinforcement learning model for {AI}-based decision support in skin cancer,'' {\em Nature Medicine}, vol.~29, pp.~1941--1946, 2023.
+
+\bibitem{lee1997dullrazor}
+T.~Lee, V.~Ng, R.~Gallagher, A.~Coldman, and D.~McLean, ``{DullRazor}: A software approach to hair removal from images,'' {\em Computers in Biology and Medicine}, vol.~27, no.~6, pp.~533--543, 1997.
+
+\bibitem{wang2024hair}
+Z.~Wang, Y.~Xue, H.~Xi, X.~Tan, K.~Lin, C.~Wang, and J.~Zhang, ``Influence of hair presence on dermoscopic image analysis by {AI} in skin lesion diagnosis,'' {\em Computers in Biology and Medicine}, vol.~183, p.~109335, 2024.
+
+\bibitem{he2016resnet}
+K.~He, X.~Zhang, S.~Ren, and J.~Sun, ``Deep residual learning for image recognition,'' in {\em Proceedings of the {IEEE} Conference on Computer Vision and Pattern Recognition ({CVPR})}, pp.~770--778, 2016.
+
+\bibitem{huang2017densenet}
+G.~Huang, Z.~Liu, L.~van~der Maaten, and K.~Q. Weinberger, ``Densely connected convolutional networks,'' in {\em Proceedings of the {IEEE} Conference on Computer Vision and Pattern Recognition ({CVPR})}, pp.~4700--4708, 2017.
+
+\bibitem{tan2021efficientnetv2}
+M.~Tan and Q.~Le, ``{EfficientNetV2}: Smaller models and faster training,'' in {\em Proceedings of the 38th International Conference on Machine Learning ({ICML})}, vol.~139 of {\em Proceedings of Machine Learning Research}, pp.~10096--10106, 2021.
+
+\bibitem{liu2022convnext}
+Z.~Liu, H.~Mao, C.-Y. Wu, C.~Feichtenhofer, T.~Darrell, and a.~Xie, ``A {ConvNet} for the 2020s,'' in {\em Proceedings of the {IEEE/CVF} Conference on Computer Vision and Pattern Recognition ({CVPR})}, pp.~11976--11986, 2022.
+
+\bibitem{yan2025panderm}
+S.~Yan, Z.~Yu, C.~Primiero, {\em et~al.}, ``A multimodal vision foundation model for clinical dermatology,'' {\em Nature Medicine}, vol.~31, pp.~2691--2702, 2025.
+
+\bibitem{hu2024multiscale}
+Z.~Hu, W.~Mei, H.~Chen, and W.~Hou, ``Multi-scale feature fusion and class weight loss for skin lesion classification,'' {\em Computers in Biology and Medicine}, vol.~176, p.~108594, 2024.
+
+\bibitem{sambyal2023calibration}
+A.~S. Sambyal, U.~Niyaz, N.~C. Krishnan, and D.~R. Bathula, ``Understanding calibration of deep neural networks for medical image classification,'' {\em Computer Methods and Programs in Biomedicine}, vol.~242, p.~107816, 2023.
+
+\bibitem{penso2024calibration}
+C.~Penso, L.~Frenkel, and J.~Goldberger, ``Confidence calibration of a medical imaging classification system that is robust to label noise,'' {\em IEEE Transactions on Medical Imaging}, vol.~43, no.~6, pp.~2050--2060, 2024.
+
+\bibitem{telea2004inpainting}
+A.~Telea, ``An image inpainting technique based on the fast marching method,'' {\em Journal of Graphics Tools}, vol.~9, no.~1, pp.~23--34, 2004.
+
+\bibitem{zuiderveld1994clahe}
+K.~Zuiderveld, ``Contrast limited adaptive histogram equalization,'' in {\em Graphics Gems {IV}}, pp.~474--485, Academic Press, 1994.
+
+\bibitem{pedregosa2011sklearn}
+F.~Pedregosa {\em et~al.}, ``Scikit-learn: Machine learning in {Python},'' {\em Journal of Machine Learning Research}, vol.~12, pp.~2825--2830, 2011.
+
+\bibitem{w3c2023wcag22}
+{World Wide Web Consortium}, ``Web content accessibility guidelines ({WCAG}) 2.2.'' W3C Recommendation, 5 de octubre de 2023, 2023.
+
+\end{thebibliography}

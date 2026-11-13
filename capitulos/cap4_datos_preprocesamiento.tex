@@ -1,0 +1,141 @@
+\chapter{Datos y preprocesamiento}
+
+Este capítulo describe el conjunto de datos HAM10000~\cite{tschandl2018ham10000}, la estructura de múltiples fotografías por lesión y el procedimiento de partición agrupada en entrenamiento, validación y prueba. También detalla las cuatro etapas del preprocesamiento de imágenes~\cite{lee1997dullrazor,telea2004inpainting,zuiderveld1994clahe}, las transformaciones de aumento en línea y la ponderación de clases aplicada durante el entrenamiento. Su finalidad es documentar la preparación de los datos correspondiente al primer objetivo específico del trabajo.
+
+\section{Conjunto de datos HAM10000}
+
+El desarrollo experimental utilizó el conjunto público \textit{Human Against Machine with 10000 training images} (HAM10000), publicado por Tschandl et al.~\cite{tschandl2018ham10000} bajo licencia Creative Commons Attribution-NonCommercial (CC BY-NC). Este banco reúne 10.015 imágenes dermatoscópicas adquiridas durante 20 años en la Universidad Médica de Viena (Austria) y en la clínica de Cliff Rosendahl en Queensland (Australia)~\cite{tschandl2018ham10000}. Las 10.015 fotografías corresponden a 7.470 lesiones pigmentadas distribuidas en siete categorías diagnósticas~\cite{tschandl2018ham10000}. Más del 50\,\% de las lesiones cuenta con confirmación mediante estudio histopatológico, mientras que el resto se validó por seguimiento digital, microscopía confocal o consenso de expertos~\cite{tschandl2018ham10000}.
+
+La Tabla~\ref{tab:distribucion} presenta el conteo y el porcentaje de imágenes por cada una de las siete clases del conjunto HAM10000~\cite{tschandl2018ham10000}. En ella se observa que la clase \texttt{nv} concentra 6.705 de las 10.015 fotografías, lo que equivale al 67,0\,\% del total del banco. En el extremo opuesto, las categorías con menor representación son \texttt{df}, con 115 imágenes (1,1\,\%), y \texttt{vasc}, con 142 imágenes (1,4\,\%)~\cite{tschandl2018ham10000}. La Figura~\ref{fig:clases} reserva el espacio para ilustrar un ejemplo dermatoscópico por cada una de las siete clases, atribuido a la colección original de HAM10000~\cite{tschandl2018ham10000}.
+
+\begin{table}[H]
+  \centering
+  \caption{Distribución de imágenes por clase en HAM10000~\cite{tschandl2018ham10000}.}
+  \label{tab:distribucion}
+  \begin{tabularx}{\textwidth}{Yrr}
+    \toprule
+    Clase & Imágenes & Proporción (\%) \\
+    \midrule
+    \texttt{akiec} & 327 & 3,3 \\
+    \texttt{bcc} & 514 & 5,1 \\
+    \texttt{bkl} & 1.099 & 11,0 \\
+    \texttt{df} & 115 & 1,1 \\
+    \texttt{mel} & 1.113 & 11,1 \\
+    \texttt{nv} & 6.705 & 67,0 \\
+    \texttt{vasc} & 142 & 1,4 \\
+    Total & 10.015 & 100,0 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Ejemplos dermatoscópicos de las siete clases de HAM10000~\cite{tschandl2018ham10000}.}
+  \label{fig:clases}
+\end{figure}
+
+\section{Imágenes por lesión}
+
+En los metadatos de HAM10000, cada imagen cuenta con un identificador de lesión (\texttt{lesion\_id}) que agrupa fotografías tomadas de la misma lesión en distintos aumentos, ángulos o momentos de seguimiento~\cite{tschandl2018ham10000}. La Tabla~\ref{tab:fotos-lesion} desglosa las 7.470 lesiones del conjunto según la cantidad de fotografías registradas por cada identificador. De las 7.470 lesiones, 5.514 cuentan con una única fotografía y 1.956 lesiones poseen entre dos y seis imágenes. Estas 1.956 lesiones con fotografías múltiples agrupan un total de 4.501 imágenes, lo que representa el 44,9\,\% de las 10.015 imágenes del conjunto.
+
+\begin{table}[H]
+  \centering
+  \caption{Número de lesiones según la cantidad de fotos por lesión en HAM10000.}
+  \label{tab:fotos-lesion}
+  \begin{tabularx}{\textwidth}{Yr}
+    \toprule
+    Fotos por lesión & Número de lesiones \\
+    \midrule
+    1 & 5.514 \\
+    2 & 1.423 \\
+    3 & 490 \\
+    4 & 34 \\
+    5 & 5 \\
+    6 & 4 \\
+    Total & 7.470 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La repetición de fotografías por lesión no se distribuye de manera uniforme entre las categorías diagnósticas. En particular, la clase \texttt{mel} presenta un promedio de 1,81 fotografías por lesión, mientras que la clase mayoritaria \texttt{nv} registra un promedio de 1,24 fotografías por lesión. Esta diferencia implica que una división aleatoria por imagen tiene mayor probabilidad de asignar imágenes correlacionadas de un mismo melanoma tanto al entrenamiento como a la prueba~\cite{abhishek2025quality}. Por este motivo, el identificador \texttt{lesion\_id} se adoptó como unidad indivisible de agrupación al construir las particiones del estudio~\cite{kapoor2023leakage,abhishek2025quality}.
+
+\section{Partición de los datos}
+
+Para evitar que fotografías de una misma lesión quedaran repartidas entre distintos subconjuntos, la partición se realizó mediante el esquema \texttt{StratifiedGroupKFold} de la biblioteca scikit-learn~\cite{pedregosa2011sklearn} con semilla fija 42. El procedimiento se ejecutó en dos pasos sucesivos agrupando por \texttt{lesion\_id} y estratificando por la etiqueta de clase diagnóstica. En el primer paso, las 10.015 imágenes se dividieron en siete pliegues agrupados y se reservó un pliegue ($1/7$ del total) como conjunto de prueba. En el segundo paso, los seis pliegues restantes se subdividieron en seis grupos bajo el mismo criterio: uno ($1/7$ del total) pasó a validación y cinco ($5/7$) a entrenamiento.
+
+Con esta división en séptimos, quedaron 7.153 imágenes (5.336 lesiones) en entrenamiento, 1.431 imágenes (1.067 lesiones) en validación y 1.431 imágenes (1.067 lesiones) en prueba. La Tabla~\ref{tab:particion} muestra la distribución exacta de imágenes por clase y el total de lesiones en cada uno de los tres subconjuntos. En los tres subconjuntos, cada una de las siete clases conserva su proporción original con diferencias menores o iguales a 0,1 puntos porcentuales. No se aplicó sobremuestreo ni submuestreo al construir las particiones para que los conjuntos de validación y prueba reflejaran la distribución original de HAM10000 sin alterar las prevalencias de evaluación~\cite{maierhein2024metrics,kapoor2023leakage}.
+
+\begin{table}[H]
+  \centering
+  \caption{Partición agrupada por lesión según clase diagnóstica y número de lesiones.}
+  \label{tab:particion}
+  \begin{tabularx}{\textwidth}{Yrrr}
+    \toprule
+    Clase / unidad & Entrenamiento & Validación & Prueba \\
+    \midrule
+    \texttt{akiec} & 234 & 47 & 46 \\
+    \texttt{bcc} & 366 & 74 & 74 \\
+    \texttt{bkl} & 785 & 157 & 157 \\
+    \texttt{df} & 82 & 16 & 17 \\
+    \texttt{mel} & 795 & 159 & 159 \\
+    \texttt{nv} & 4.789 & 958 & 958 \\
+    \texttt{vasc} & 102 & 20 & 20 \\
+    Total imágenes & 7.153 & 1.431 & 1.431 \\
+    Total lesiones & 5.336 & 1.067 & 1.067 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Dado que Abhishek et al.~\cite{abhishek2025quality} identificaron 18 pares de imágenes duplicadas en HAM10000 que poseen identificadores \texttt{lesion\_id} distintos, se verificó la ubicación de dichos pares dentro de la partición generada. De los 18 pares reportados~\cite{abhishek2025quality}, 14 pares quedaron asignados dentro del mismo subconjunto y cuatro pares quedaron separados entre particiones. En concreto, dos pares quedaron entre prueba y entrenamiento (ambos \texttt{bkl}) y dos entre validación y entrenamiento (ambos \texttt{nv}), afectando a 2 de las 1.431 imágenes de prueba (0,14\,\%). Se deja constancia de que agrupar por \texttt{lesion\_id} no garantiza separación por paciente, puesto que HAM10000 no publica identificadores de paciente en sus metadatos~\cite{tschandl2018ham10000,abhishek2025quality}.
+
+\section{Preprocesamiento}
+
+Todas las imágenes de entrenamiento, validación y prueba se sometieron a una cadena determinista de cuatro etapas antes de ingresar a las redes neuronales. En la primera etapa, cada fotografía se redimensionó a 224\,px o 384\,px conservando su proporción original mediante relleno simétrico de píxeles negros en los bordes. Este relleno evita la distorsión geométrica de la asimetría de la lesión que produciría un escalado anisotrópico directo. A continuación, en la segunda etapa se aplicó un filtro de mediana con ventana de $3 \times 3$ píxeles para atenuar el ruido impulsivo sin difuminar los bordes de la lesión.
+
+En la tercera etapa se implementó un módulo de eliminación de vello basado en operaciones morfológicas e interpolación~\cite{lee1997dullrazor,telea2004inpainting}. Siguiendo el método morfológico de DullRazor~\cite{lee1997dullrazor}, se aplicó una transformada \textit{black-hat} en escala de grises y un umbral binario para aislar las hebras oscuras de vello. Los píxeles de la máscara se reconstruyeron mediante el \textit{inpainting} de marcha rápida de Telea~\cite{telea2004inpainting}, que propaga el color desde el contorno hacia el interior ocluido. En HAM10000, la oclusión abundante de vello reduce el rendimiento (afectando más a \texttt{vasc} y menos a \texttt{akiec}), aunque el vello escaso a veces no perjudica la predicción~\cite{wang2024hair}.
+
+En la cuarta etapa se aplicó la ecualización adaptativa de histograma limitada por contraste (CLAHE)~\cite{zuiderveld1994clahe} con un límite de recorte (\textit{clip limit}) de 2,0. Esta operación realza el contraste local de las redes de pigmento y las estructuras vasculares a la vez que acota la amplificación del ruido en regiones homogéneas de piel sana~\cite{zuiderveld1994clahe}. Se aclara que los parámetros de estas cuatro etapas se fijaron en la cadena base y no se realizó un estudio de ablación por etapa. La Figura~\ref{fig:preprocesamiento} reserva el espacio para mostrar el resultado visual antes y después de aplicar la secuencia de preprocesamiento sobre una imagen dermatoscópica.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][3cm][c]{0.85\linewidth}{\centering \pendiente{figura}}}
+  \caption{Ilustración del antes y después de las etapas de preprocesamiento dermatoscópico.}
+  \label{fig:preprocesamiento}
+\end{figure}
+
+\section{Aumento de datos}
+
+Para incrementar la variabilidad geométrica y fotométrica sin alterar los conjuntos de evaluación, se aplicó aumento de datos en línea exclusivamente sobre las 7.153 imágenes de entrenamiento~\cite{zhang2024dive}. En cada época se aplicaron volteos horizontal y vertical, rotación de $\pm 20^\circ$, zoom de $\pm 10$\,\%, brillo y contraste de $\pm 0{,}15$ y relleno exterior por reflexión. No se aplicaron transformaciones de matiz ni saturación de tono (\textit{hue}) porque la coloración rojiza, azulada o marrón oscura constituye un rasgo diagnóstico entre lesiones vasculares, melanomas y nevos~\cite{tschandl2018ham10000}.
+
+Antes de adoptar el esquema en línea, se evaluó y descartó una versión previa de aumento estático en disco que generaba 98.239 imágenes almacenadas antes del entrenamiento. En las pruebas preliminares, ese volumen de archivos elevaba el tiempo de cómputo a cerca de 8 minutos por época debido al cuello de botella de lectura en disco. Además, el sobremuestreo físico en esas 98.239 imágenes alteraba las frecuencias de clase y anulaba el efecto de los pesos de clase en la función de pérdida.
+
+\section{Tratamiento del desbalance}
+
+Para compensar la desproporción entre las 4.789 imágenes de \texttt{nv} y las 82 de \texttt{df} en entrenamiento (Tabla~\ref{tab:particion}), se incorporaron pesos de clase en la entropía cruzada~\cite{hu2024multiscale}. En lugar de emplear el inverso directo de la frecuencia, se definió una ponderación suavizada mediante la raíz cuadrada del inverso de la proporción de cada clase $c$. Con $N = 7.153$ imágenes totales de entrenamiento y $n_c$ imágenes en la clase $c$, el peso $w_c$ se calculó mediante la Ecuación~\ref{eq:pesos-clase}:
+
+\begin{equation}
+  w_c = \sqrt{\frac{N}{7 \cdot n_c}}
+  \label{eq:pesos-clase}
+\end{equation}
+
+La Tabla~\ref{tab:pesos} presenta los pesos resultantes para cada una de las siete clases diagnósticas en el conjunto de entrenamiento. Si se hubiera utilizado la ponderación inversa directa $N / (7 \cdot n_c)$, la clase \texttt{df} ($n_{\texttt{df}} = 82$) habría recibido un peso 58 veces mayor que el de la clase \texttt{nv} ($n_{\texttt{nv}} = 4.789$). Con la formulación de raíz cuadrada de la Ecuación~\ref{eq:pesos-clase}, la relación entre el peso máximo (\texttt{df}, con 3,53) y el mínimo (\texttt{nv}, con 0,46) se acota a unas 7,7 veces. Mientras otros trabajos combinan ponderación con remuestreo o \textit{label smoothing}~\cite{hu2024multiscale}, esta raíz cuadrada evitó la inestabilidad de gradiente observada en las corridas de diagnóstico.
+
+\begin{table}[H]
+  \centering
+  \caption{Pesos de clase empleados en la función de pérdida durante el entrenamiento ($N = 7.153$).}
+  \label{tab:pesos}
+  \begin{tabularx}{\textwidth}{Yrr}
+    \toprule
+    Clase & Imágenes en entrenamiento ($n_c$) & Peso ($w_c$) \\
+    \midrule
+    \texttt{nv} & 4.789 & 0,46 \\
+    \texttt{mel} & 795 & 1,13 \\
+    \texttt{bkl} & 785 & 1,14 \\
+    \texttt{bcc} & 366 & 1,67 \\
+    \texttt{akiec} & 234 & 2,09 \\
+    \texttt{vasc} & 102 & 3,17 \\
+    \texttt{df} & 82 & 3,53 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
